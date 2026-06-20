@@ -1,0 +1,74 @@
+# Starter GitHub Actions workflow — cloud build of the Drive-sync-modded Readest.
+#
+# TEMPLATE, not live: copy to the fork's `.github/workflows/build-mod.yml` after
+# pushing the fork to GitHub, and add the secrets below. It mirrors
+# tooling/build-mod.sh as CI steps and uploads the built app as an artifact.
+#
+# Scope: this BUILDS the current `cloud-sync-mod` branch. Replaying the mod onto a
+# new upstream version (the rebase in update-to-version.sh) is best done locally,
+# where a conflict can be resolved interactively; push the updated branch, then
+# this workflow builds it.
+#
+# Required repo secrets:
+#   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET   (desktop OAuth client)
+# Later, for Android: the signing keystore + Android OAuth client secrets.
+
+name: build-mod
+
+on:
+  workflow_dispatch: {}        # run manually from the Actions tab
+  push:
+    branches: [cloud-sync-mod]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/readest-app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive   # heavy Rust submodules are needed for the native build
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Write OAuth creds
+        run: |
+          printf 'NEXT_PUBLIC_GOOGLE_CLIENT_ID=%s\n'     "$GOOGLE_CLIENT_ID"     >  .env.local
+          printf 'NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=%s\n' "$GOOGLE_CLIENT_SECRET" >> .env.local
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+
+      - name: Install deps
+        run: pnpm install
+        working-directory: .
+
+      - name: Vendor wasm/pdfjs artifacts
+        run: |
+          for leaf in prepare-public-vendor \
+            copy-pdfjs-js copy-pdfjs-wasm copy-pdfjs-fonts \
+            copy-flatten-pdfjs-annotation-layer-css copy-flatten-pdfjs-text-layer-css \
+            copy-simplecc copy-jieba; do
+            pnpm run "$leaf"
+          done
+
+      - name: Build frontend
+        run: pnpm build
+
+      - name: Build native app
+        run: >
+          pnpm exec dotenv -e .env.tauri -- tauri build --debug --no-bundle
+          --config '{"build":{"beforeBuildCommand":""}}'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: readest-mod-windows
+          path: target/debug/readest.exe
+          if-no-files-found: error

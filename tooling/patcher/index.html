@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Readest Drive-sync — Patcher</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 15px/1.5 system-ui, sans-serif;
+    background: #14161a; color: #e6e8eb;
+    display: flex; flex-direction: column; height: 100vh;
+  }
+  header { padding: 18px 22px; border-bottom: 1px solid #262a31; }
+  h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+  .state { font-size: 13px; color: #9aa3ad; display: flex; gap: 18px; flex-wrap: wrap; }
+  .state b { color: #cfd4da; font-weight: 600; }
+  .pill { background:#1d2128; border:1px solid #2c313a; border-radius:6px; padding:1px 8px; }
+  .bar { display: flex; gap: 10px; align-items: center; padding: 14px 22px; flex-wrap: wrap; }
+  select, button, input {
+    font: inherit; border-radius: 8px; border: 1px solid #2c313a;
+    background: #1d2128; color: #e6e8eb; padding: 9px 14px;
+  }
+  select { min-width: 150px; }
+  .creds { margin: 14px 22px 0; padding: 12px 14px; background: #171a1f; border: 1px solid #262a31; border-radius: 10px; }
+  .creds-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px; color: #cfd4da; }
+  .creds-fields { display: flex; gap: 8px; flex-wrap: wrap; }
+  .creds-fields input { flex: 1; min-width: 200px; }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { background: #262b33; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: #1d4ed8; }
+  .spacer { flex: 1; }
+  #banner { display: none; margin: 0 22px; padding: 10px 14px; border-radius: 8px; font-weight: 600; }
+  #banner.ok { display:block; background:#0c2a18; color:#7ee2a8; border:1px solid #1c5436; }
+  #banner.err { display:block; background:#2a1212; color:#f3a3a3; border:1px solid #5a2020; }
+  #banner.run { display:block; background:#1d2230; color:#9db4f0; border:1px solid #2c3550; }
+  #log {
+    flex: 1; margin: 14px 22px 22px; padding: 14px; overflow: auto;
+    background: #0d0f12; border: 1px solid #23272e; border-radius: 10px;
+    font: 12.5px/1.55 ui-monospace, monospace; white-space: pre-wrap; color: #c4cad2;
+  }
+  #log .e { color: #f3a3a3; }
+  #log .c { color: #6f7782; }
+  .hint { font-size: 12px; color: #7a828c; padding: 0 22px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Readest Drive-sync · Patcher</h1>
+    <div class="state" id="state">loading…</div>
+  </header>
+
+  <div class="creds">
+    <div class="creds-head">
+      <span>Google Drive credentials</span>
+      <span class="pill" id="credsStatus">checking…</span>
+    </div>
+    <div class="creds-fields">
+      <input id="clientId" placeholder="Client ID (…apps.googleusercontent.com)" />
+      <input id="clientSecret" type="password" placeholder="Client Secret" />
+      <button id="saveCreds">Save</button>
+    </div>
+    <p class="hint" style="padding:0; margin:8px 0 0;">Your own Google OAuth client (Desktop type) from console.cloud.google.com → Credentials. Stored locally in tooling/mod/credentials.env — gitignored, never uploaded. No creds = Drive sign-in disabled in the build.</p>
+  </div>
+
+  <div class="bar">
+    <label for="ref">Readest version:</label>
+    <select id="ref"></select>
+    <button id="check">Check (dry run)</button>
+    <button id="update" class="primary">Update &amp; Build</button>
+    <div class="spacer"></div>
+    <button id="build">Build current only</button>
+  </div>
+
+  <p class="hint">“Update &amp; Build” puts our mod on the chosen Readest version and builds it. If Readest changed something we edit, it stops and shows which file needs a developer — share the log.</p>
+
+  <div id="banner"></div>
+  <pre id="log">Ready.</pre>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const log = $('log'), banner = $('banner');
+  const buttons = ['check', 'update', 'build'].map($);
+
+  function setBanner(kind, text) { banner.className = kind; banner.textContent = text; }
+  function append(line) {
+    const div = document.createElement('div');
+    if (line.startsWith('$ ')) div.className = 'c';
+    if (/error|fail|conflict|✗/i.test(line)) div.className = 'e';
+    div.textContent = line;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function loadState() {
+    const s = await (await fetch('/api/state')).json();
+    $('state').innerHTML =
+      `Built version <span class="pill"><b>${s.cloned ? (s.current || '?') : 'not built yet'}</b></span>` +
+      `Mod targets <span class="pill"><b>${s.baseTag || '?'}</b></span>` +
+      `Latest Readest <span class="pill"><b>${s.latest || '?'}</b></span>`;
+    const tags = await (await fetch('/api/tags')).json();
+    $('ref').innerHTML = tags.map((t) => `<option>${t}</option>`).join('');
+  }
+
+  function run(action) {
+    const ref = $('ref').value;
+    log.textContent = '';
+    buttons.forEach((b) => (b.disabled = true));
+    setBanner('run', action === 'check' ? 'Checking…' : action === 'build' ? 'Building…' : 'Updating & building…');
+    const src = new EventSource(`/api/run?action=${action}&ref=${encodeURIComponent(ref)}`);
+    src.onmessage = (e) => append(e.data);
+    src.addEventListener('done', (e) => {
+      src.close();
+      buttons.forEach((b) => (b.disabled = false));
+      const code = Number(e.data);
+      if (code === 0) setBanner('ok', action === 'check' ? '✓ Clean — the mod applies to this version.' : '✓ Done.');
+      else setBanner('err', action === 'check' ? '✗ Needs a developer to merge — see log.' : `✗ Failed (code ${code}) — see log.`);
+      loadState();
+    });
+    src.onerror = () => { src.close(); buttons.forEach((b) => (b.disabled = false)); setBanner('err', '✗ Connection lost.'); };
+  }
+
+  async function loadCreds() {
+    const c = await (await fetch('/api/creds')).json();
+    $('clientId').value = c.clientId || '';
+    $('credsStatus').textContent = c.configured ? 'set ✓' : 'not set — Drive disabled';
+    $('credsStatus').style.color = c.configured ? '#7ee2a8' : '#f3a3a3';
+  }
+  $('saveCreds').onclick = async () => {
+    const clientId = $('clientId').value.trim();
+    const clientSecret = $('clientSecret').value.trim();
+    if (!clientId) { setBanner('err', 'Client ID is required.'); return; }
+    const r = await fetch('/api/creds', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ clientId, clientSecret }),
+    });
+    if (r.ok) { setBanner('ok', '✓ Credentials saved — baked into the next build.'); $('clientSecret').value = ''; loadCreds(); }
+    else { setBanner('err', '✗ Failed to save credentials.'); }
+  };
+
+  $('check').onclick = () => run('check');
+  $('update').onclick = () => run('update');
+  $('build').onclick = () => run('build');
+  loadState();
+  loadCreds();
+</script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+work/
+tooling/mod/credentials.env
+.env.local

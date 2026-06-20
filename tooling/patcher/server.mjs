@@ -1,0 +1,140 @@
+// Local web "patcher" for the Readest Drive-sync mod.
+//
+// A tiny zero-dependency server (Node built-ins only) that drives the
+// self-contained pipeline (pipeline.mjs) behind a browser UI with a live,
+// streaming log. The whole product is the readest-gdrive-sync-mod folder: this
+// clones Readest into work/, overlays the mod, and builds — no bash, no
+// pre-existing checkout. Binds to localhost only.
+//
+// Run via start-patcher.cmd (double-click) or: node server.mjs
+
+import { createServer } from 'node:http';
+import { readFile, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { runCheck, runUpdate, runBuild, state, listVersions } from './pipeline.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const PORT = 8787;
+// Builder's Google OAuth client, entered in the UI. Gitignored — never shipped.
+// The pipeline copies it to the build's .env.local so Drive sign-in works.
+const CREDS_FILE = join(HERE, '..', 'mod', 'credentials.env');
+
+/** Collect a request body into a string (for the small POST endpoints). */
+const readBody = (request) =>
+  new Promise((resolve) => {
+    let data = '';
+    request.on('data', (chunk) => (data += chunk));
+    request.on('end', () => resolve(data));
+  });
+
+/** Parse NEXT_PUBLIC_GOOGLE_CLIENT_ID out of credentials.env (id only — never the secret). */
+const readClientId = async () => {
+  try {
+    const text = await readFile(CREDS_FILE, 'utf8');
+    return (text.match(/^NEXT_PUBLIC_GOOGLE_CLIENT_ID=(.*)$/m)?.[1] ?? '').trim();
+  } catch {
+    return '';
+  }
+};
+
+// Each action maps to a pipeline function with the shape (ref, onLine) -> code.
+const ACTIONS = {
+  check: runCheck,
+  update: runUpdate,
+  build: (_ref, onLine) => runBuild(onLine),
+};
+
+const sendJson = (response, body) => {
+  response.writeHead(200, { 'content-type': 'application/json' });
+  response.end(JSON.stringify(body));
+};
+
+const server = createServer(async (request, response) => {
+  const url = new URL(request.url, `http://localhost:${PORT}`);
+
+  try {
+    if (url.pathname === '/') {
+      const html = await readFile(join(HERE, 'index.html'));
+      response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      response.end(html);
+      return;
+    }
+    if (url.pathname === '/api/state') return sendJson(response, await state());
+    if (url.pathname === '/api/tags') return sendJson(response, await listVersions());
+
+    if (url.pathname === '/api/creds') {
+      if (request.method === 'POST') {
+        const body = JSON.parse((await readBody(request)) || '{}');
+        const clientId = String(body.clientId ?? '').trim();
+        const clientSecret = String(body.clientSecret ?? '').trim();
+        if (!clientId) {
+          response.writeHead(400);
+          response.end('clientId required');
+          return;
+        }
+        await writeFile(
+          CREDS_FILE,
+          `NEXT_PUBLIC_GOOGLE_CLIENT_ID=${clientId}\nNEXT_PUBLIC_GOOGLE_CLIENT_SECRET=${clientSecret}\n`,
+        );
+        return sendJson(response, { ok: true });
+      }
+      // GET: report whether creds are set + the client id (never the secret).
+      const clientId = await readClientId();
+      return sendJson(response, { configured: clientId.length > 0, clientId });
+    }
+
+    if (url.pathname === '/api/run') {
+      const action = url.searchParams.get('action') ?? '';
+      const ref = url.searchParams.get('ref') ?? '';
+      const fn = ACTIONS[action];
+      if (!fn) {
+        response.writeHead(400);
+        response.end('unknown action');
+        return;
+      }
+      // Validate the version against the real tag list — never trust raw input
+      // (build ignores ref, so it is exempt).
+      if (action !== 'build') {
+        const versions = await listVersions();
+        if (!versions.includes(ref)) {
+          response.writeHead(400);
+          response.end('unknown version');
+          return;
+        }
+      }
+
+      response.writeHead(200, {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      });
+      const onLine = (line) => response.write(`data: ${String(line).replace(/[\r\n]+/g, ' ')}\n\n`);
+      let done = false;
+      const finish = (code) => {
+        if (done) return;
+        done = true;
+        response.write(`event: done\ndata: ${code}\n\n`);
+        response.end();
+      };
+      request.on('close', () => finish(1));
+      fn(ref, onLine)
+        .then((code) => finish(code))
+        .catch((err) => {
+          onLine(`PIPELINE ERROR: ${err.message}`);
+          finish(1);
+        });
+      return;
+    }
+
+    response.writeHead(404);
+    response.end('not found');
+  } catch (err) {
+    response.writeHead(500);
+    response.end(`server error: ${err.message}`);
+  }
+});
+
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`Readest mod patcher → http://localhost:${PORT}`);
+});
