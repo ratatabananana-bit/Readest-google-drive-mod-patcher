@@ -34,9 +34,13 @@ const ICONS_SRC = join(MOD_ROOT, 'tooling', 'mod', 'icons');
 // Android APK output + the path tauri writes the debug APK to.
 const ANDROID_OUTPUT_DIR = join(MOD_ROOT, 'work', 'output');
 const APK_FILENAME = 'Readest-GMod.apk';
-const BUILT_APK = join(
-  APP_DIR, 'src-tauri', 'gen', 'android', 'app', 'build', 'outputs', 'apk', 'universal', 'debug', 'app-universal-debug.apk',
-);
+/** Where tauri writes the built APK, per build variant (debug | release). */
+const builtApkPath = (release) => {
+  const variant = release ? 'release' : 'debug';
+  return join(
+    APP_DIR, 'src-tauri', 'gen', 'android', 'app', 'build', 'outputs', 'apk', 'universal', variant, `app-universal-${variant}.apk`,
+  );
+};
 
 const READEST_URL = 'https://github.com/readest/readest.git';
 // Override for fast local testing: clone from an existing checkout instead of GitHub.
@@ -321,7 +325,7 @@ function androidEnv() {
  *  3. Readest's local plugins declare a `store` flavor dim (foss/googleplay);
  *     pick FOSS (no Play billing) to resolve build-variant ambiguity.
  */
-async function applyAndroidPostInitFixes(onLine) {
+async function applyAndroidPostInitFixes(onLine, release) {
   const conf = JSON.parse(await readFile(join(APP_DIR, 'src-tauri', 'tauri.conf.json'), 'utf8'));
   const pkgPath = conf.identifier.split('.').join('/');
   const gen = join(APP_DIR, 'src-tauri', 'gen', 'android');
@@ -346,9 +350,14 @@ async function applyAndroidPostInitFixes(onLine) {
   let g = await readFile(gradle, 'utf8');
   if (!g.includes('missingDimensionStrategy'))
     g = g.replace('defaultConfig {', 'defaultConfig {\n        missingDimensionStrategy("store", "foss")');
+  // The generated `release` build type has no signingConfig, so a release APK would
+  // be unsigned (uninstallable). Reuse the debug signing config — a debug-signed
+  // release build is smaller (optimized + minified) and fine to sideload.
+  if (release && !g.includes('signingConfig = signingConfigs.getByName("debug")'))
+    g = g.replace('getByName("release") {', 'getByName("release") {\n            signingConfig = signingConfigs.getByName("debug")');
   await writeFile(gradle, g);
 
-  onLine('==> Applied Android post-init fixes (pnpm wrapper, icon color, FOSS flavor)');
+  onLine(`==> Applied Android post-init fixes (pnpm wrapper, icon color, FOSS flavor${release ? ', release signing' : ''})`);
 }
 
 /**
@@ -358,18 +367,19 @@ async function applyAndroidPostInitFixes(onLine) {
  * runs the build and copies the APK to `work/output/`. Best-effort: if no Android
  * SDK is present the exe is still the deliverable, so it logs and skips.
  */
-async function buildAndroidApk(onLine) {
+async function buildAndroidApk(onLine, release) {
   const env = androidEnv();
   if (!env.ANDROID_HOME || !existsSync(env.ANDROID_HOME)) {
     onLine('==> No Android SDK (set ANDROID_HOME) — skipping APK. The Windows exe is still built.');
     return 0;
   }
+  const variant = release ? 'release' : 'debug';
 
   onLine('==> Android: regenerating gen/android for the current identifier');
   await rm(join(APP_DIR, 'src-tauri', 'gen', 'android'), { recursive: true, force: true });
   if (await sh(`${PNPM} exec tauri android init`, { cwd: APP_DIR, env }, onLine))
     return fail(onLine, 'tauri android init');
-  await applyAndroidPostInitFixes(onLine);
+  await applyAndroidPostInitFixes(onLine, release);
 
   // tauri's :tauri-android compile writes kotlin incremental caches INTO this source
   // template; a stale cache then breaks the plugin-copy ("failed to copy ... os error 2").
@@ -378,17 +388,19 @@ async function buildAndroidApk(onLine) {
     force: true,
   });
 
-  onLine('==> Android: building debug APK (aarch64)');
-  const build = `${PNPM} exec dotenv -e .env.tauri -- tauri android build --debug --apk -t aarch64`;
+  onLine(`==> Android: building ${variant} APK (aarch64)`);
+  // tauri builds RELEASE by default; `--debug` is the only profile flag.
+  const build = `${PNPM} exec dotenv -e .env.tauri -- tauri android build ${release ? '' : '--debug'} --apk -t aarch64`;
   if (await sh(build, { cwd: APP_DIR, env }, onLine)) return fail(onLine, 'tauri android build');
 
   await mkdir(ANDROID_OUTPUT_DIR, { recursive: true });
-  await cp(BUILT_APK, join(ANDROID_OUTPUT_DIR, APK_FILENAME));
+  await cp(builtApkPath(release), join(ANDROID_OUTPUT_DIR, APK_FILENAME));
   onLine(`==> Built APK: ${join(ANDROID_OUTPUT_DIR, APK_FILENAME)}`);
   return 0;
 }
 
-async function buildInWork(onLine) {
+async function buildInWork(onLine, release = false) {
+  onLine(`==> Build profile: ${release ? 'RELEASE (optimized, smaller)' : 'debug (faster)'}`);
   onLine('==> Init submodules');
   if (await sh(`git submodule update --init ${SUBMODULES.join(' ')}`, {}, onLine))
     return fail(onLine, 'submodule init');
@@ -414,13 +426,14 @@ async function buildInWork(onLine) {
 
   onLine('==> Build native app');
   await writeFile(join(APP_DIR, '.patcher-tauri-override.json'), '{"build":{"beforeBuildCommand":""}}');
+  // tauri builds RELEASE by default; `--debug` is the only profile flag (there is no `--release`).
   const tauri =
-    `${PNPM} exec dotenv -e .env.tauri -- tauri build --debug --no-bundle --config .patcher-tauri-override.json`;
+    `${PNPM} exec dotenv -e .env.tauri -- tauri build ${release ? '' : '--debug'} --no-bundle --config .patcher-tauri-override.json`;
   if (await sh(tauri, { cwd: APP_DIR, env: cargoEnv() }, onLine)) return fail(onLine, 'tauri build');
 
-  onLine(`==> Built ${join(WORK_DIR, 'target', 'debug', 'readest.exe')}`);
+  onLine(`==> Built ${join(WORK_DIR, 'target', release ? 'release' : 'debug', 'readest.exe')}`);
 
-  const apkCode = await buildAndroidApk(onLine);
+  const apkCode = await buildAndroidApk(onLine, release);
   if (apkCode !== 0) return apkCode;
 
   onLine('==> Done. Built the Windows exe (and the Android APK if the SDK was present).');
@@ -445,20 +458,21 @@ export async function runCheck(ref, onLine) {
   return 1;
 }
 
-/** Full flow: clone (if needed) → overlay onto <ref> → build. */
-export async function runUpdate(ref, onLine) {
+/** Full flow: clone (if needed) → overlay onto <ref> → build. `release` = optimized
+ *  (smaller, slower) artifacts for distribution; default debug (faster). */
+export async function runUpdate(ref, onLine, release = false) {
   if (await ensureClone(onLine)) return 1;
   if (!(await capture(`git rev-parse --verify --quiet "${ref}^{commit}"`)).out)
     return fail(onLine, `version '${ref}' not found`);
   if (await overlayOnto(ref, onLine)) return 1;
-  return buildInWork(onLine);
+  return buildInWork(onLine, release);
 }
 
 /** Rebuild whatever is currently overlaid in work/ (no re-clone, no re-overlay). */
-export async function runBuild(onLine) {
+export async function runBuild(onLine, release = false) {
   if (!isCloned()) {
     onLine('Nothing built yet — use "Update & Build" first to set up work/readest.');
     return 1;
   }
-  return buildInWork(onLine);
+  return buildInWork(onLine, release);
 }

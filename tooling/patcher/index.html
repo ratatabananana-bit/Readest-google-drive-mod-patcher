@@ -73,6 +73,7 @@
     <select id="ref"></select>
     <button id="check">Check (dry run)</button>
     <button id="update" class="primary">Update &amp; Build</button>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#9aa3ad;" title="Optimized, minified builds for sharing — much smaller .exe/.apk, but slower to build. Leave off for a quick test build."><input type="checkbox" id="release" style="width:auto;margin:0;" /> Release (smaller)</label>
     <div class="spacer"></div>
     <button id="build" title="Rebuild what's already downloaded + patched — skips the download and patch steps. Faster, but won't pick up a newer Readest version.">Rebuild current</button>
   </div>
@@ -112,7 +113,8 @@
     log.textContent = '';
     buttons.forEach((b) => (b.disabled = true));
     setBanner('run', action === 'check' ? 'Checking…' : action === 'build' ? 'Building…' : 'Updating & building…');
-    const src = new EventSource(`/api/run?action=${action}&ref=${encodeURIComponent(ref)}`);
+    const release = $('release').checked ? '1' : '0';
+    const src = new EventSource(`/api/run?action=${action}&ref=${encodeURIComponent(ref)}&release=${release}`);
     src.onmessage = (e) => append(e.data);
     src.addEventListener('done', (e) => {
       src.close();

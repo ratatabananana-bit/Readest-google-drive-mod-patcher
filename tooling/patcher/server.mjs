@@ -43,9 +43,9 @@ const readBody = (request) =>
 
 // Each action maps to a pipeline function with the shape (ref, onLine) -> code.
 const ACTIONS = {
-  check: runCheck,
-  update: runUpdate,
-  build: (_ref, onLine) => runBuild(onLine),
+  check: (ref, onLine) => runCheck(ref, onLine),
+  update: (ref, onLine, release) => runUpdate(ref, onLine, release),
+  build: (_ref, onLine, release) => runBuild(onLine, release),
 };
 
 const sendJson = (response, body) => {
@@ -124,10 +124,11 @@ const server = createServer(async (request, response) => {
         if (code !== null) response.write(`event: done\ndata: ${code}\n\n`);
         response.end();
       };
+      const release = url.searchParams.get('release') === '1';
       // Closing the browser ends the SSE response but does NOT cancel the build —
       // buildRunning stays set (cleared in `finally`) so nothing starts on top of it.
       request.on('close', () => endResponse(null));
-      fn(ref, onLine)
+      fn(ref, onLine, release)
         .then((code) => endResponse(code))
         .catch((err) => {
           onLine(`PIPELINE ERROR: ${err.message}`);
