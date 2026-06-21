@@ -357,7 +357,34 @@ async function applyAndroidPostInitFixes(onLine, release) {
     g = g.replace('getByName("release") {', 'getByName("release") {\n            signingConfig = signingConfigs.getByName("debug")');
   await writeFile(gradle, g);
 
-  onLine(`==> Applied Android post-init fixes (pnpm wrapper, icon color, FOSS flavor${release ? ', release signing' : ''})`);
+  // R8 (release minify) can strip or rename classes that Tauri and the native bridge
+  // resolve BY NAME / reflection at runtime — including the OAuth Custom-Tab plugin
+  // (com.readest.native_bridge) and every @Command / @InvokeArg target. tauri's
+  // generated rules keep only TauriActivity, so add the rest or the release APK
+  // builds fine but breaks sign-in on device. Inert for debug (no minify).
+  const proguard = join(gen, 'app', 'proguard-rules.pro');
+  const existingProguard = await readFile(proguard, 'utf8').catch(() => '');
+  if (!existingProguard.includes('com.readest.native_bridge')) {
+    const keep = [
+      '',
+      '# Cloud-sync mod: keep what R8 must not strip/rename at runtime.',
+      '-keep class app.tauri.** { *; }',
+      '-keep class com.readest.native_bridge.** { *; }',
+      `-keep class ${conf.identifier}.** { *; }`,
+      '-keep @app.tauri.annotation.TauriPlugin class * { *; }',
+      '-keepclassmembers class * { @app.tauri.annotation.Command <methods>; }',
+      '-keep @app.tauri.annotation.InvokeArg class * { *; }',
+      '-keepclassmembers @app.tauri.annotation.InvokeArg class * { <fields>; }',
+      '-keepclasseswithmembernames class * { native <methods>; }',
+      '-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }',
+      '',
+    ].join('\n');
+    await writeFile(proguard, existingProguard + keep);
+  }
+
+  onLine(
+    `==> Applied Android post-init fixes (pnpm wrapper, icon color, FOSS flavor${release ? ', release signing + R8 keep-rules' : ''})`,
+  );
 }
 
 /**
