@@ -10,7 +10,7 @@
 // browser log. Functions resolve an exit code and never reject.
 
 import { spawn } from 'node:child_process';
-import { writeFile, mkdir, readFile, copyFile } from 'node:fs/promises';
+import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -22,6 +22,13 @@ const WORK_DIR = join(MOD_ROOT, 'work', 'readest'); // Readest is cloned here
 const APP_DIR = join(WORK_DIR, 'apps', 'readest-app');
 const MOD_PATCH = join(MOD_ROOT, 'tooling', 'mod', 'mod.patch');
 const BASE_TAG_FILE = join(MOD_ROOT, 'tooling', 'mod', 'base-tag.txt');
+// Bundled default Google client (committed, non-secret) + the optional per-builder
+// override (gitignored). The reverse-DNS scheme is derived from whichever is used.
+const DEFAULT_CLIENT_ID_FILE = join(MOD_ROOT, 'tooling', 'mod', 'default-client-id.txt');
+const CLIENT_ID_OVERRIDE_FILE = join(MOD_ROOT, 'tooling', 'mod', 'credentials.env');
+const CLIENT_ID_ENV_KEY = 'NEXT_PUBLIC_GOOGLE_CLIENT_ID';
+const GOOGLE_CLIENT_ID_SUFFIX = '.apps.googleusercontent.com';
+const REVERSE_DNS_SCHEME_PREFIX = 'com.googleusercontent.apps.';
 
 const READEST_URL = 'https://github.com/readest/readest.git';
 // Override for fast local testing: clone from an existing checkout instead of GitHub.
@@ -185,6 +192,71 @@ async function overlayOnto(ref, onLine) {
   return 0;
 }
 
+/** Read a client id from a `KEY=value` env file or a bare-id text file. */
+async function readClientId(file) {
+  if (!existsSync(file)) return '';
+  const text = await readFile(file, 'utf8');
+  const keyed = text.match(new RegExp(`^${CLIENT_ID_ENV_KEY}=(.*)$`, 'm'));
+  if (keyed) return keyed[1].trim();
+  return (text.split('\n').find((l) => l.trim() && !l.startsWith('#')) ?? '').trim();
+}
+
+/**
+ * The Google client id to bake into this build: the builder's override
+ * (tooling/mod/credentials.env, gitignored) if set, else the committed bundled
+ * default (tooling/mod/default-client-id.txt). Returns the id + whether it is the
+ * default, so the UI and log can say which is in use. Exported for /api/creds.
+ */
+export async function effectiveClientId() {
+  const override = await readClientId(CLIENT_ID_OVERRIDE_FILE);
+  if (override) return { clientId: override, isDefault: false };
+  return { clientId: await readClientId(DEFAULT_CLIENT_ID_FILE), isDefault: true };
+}
+
+/**
+ * Derive the reverse-DNS redirect scheme from a Google client id — mirrors
+ * `googleAuth/reverseDnsRedirect.ts` so the registered scheme matches the auth
+ * request byte-for-byte.
+ */
+function deriveReverseDnsScheme(clientId) {
+  const identifier = clientId.endsWith(GOOGLE_CLIENT_ID_SUFFIX)
+    ? clientId.slice(0, -GOOGLE_CLIENT_ID_SUFFIX.length)
+    : clientId;
+  return `${REVERSE_DNS_SCHEME_PREFIX}${identifier.toLowerCase()}`;
+}
+
+/**
+ * Bake the builder's Google client into the work tree: write the frontend env var
+ * AND inject the client's reverse-DNS scheme into tauri.conf's deep-link config
+ * (desktop + mobile), replacing whatever scheme the overlay shipped. This is THE
+ * per-builder step — the scheme is derived from the client id, so each build
+ * registers its OWN client's redirect. Must run before `next build` (writes the
+ * NEXT_PUBLIC_* env it bakes in) and before `tauri build` (patches tauri.conf).
+ */
+async function injectClientConfig(onLine) {
+  const { clientId, isDefault } = await effectiveClientId();
+  if (!clientId) {
+    onLine('==> No Google client id (default-client-id.txt empty + no override) — building WITHOUT Drive.');
+    return;
+  }
+  await writeFile(join(APP_DIR, '.env.local'), `${CLIENT_ID_ENV_KEY}=${clientId}\n`);
+
+  const scheme = deriveReverseDnsScheme(clientId);
+  const confPath = join(APP_DIR, 'src-tauri', 'tauri.conf.json');
+  const conf = JSON.parse(await readFile(confPath, 'utf8'));
+  const deepLink = conf.plugins['deep-link'];
+  deepLink.desktop.schemes = ['readest', scheme];
+  deepLink.mobile = (deepLink.mobile ?? []).filter(
+    (entry) => !(entry.scheme ?? []).some((s) => s.startsWith(REVERSE_DNS_SCHEME_PREFIX)),
+  );
+  deepLink.mobile.push({ scheme: [scheme], appLink: false });
+  await writeFile(confPath, `${JSON.stringify(conf, null, 2)}\n`);
+
+  onLine(
+    `==> Injected Google client (${isDefault ? 'built-in default' : 'your override'}) + reverse-DNS scheme — Drive enabled`,
+  );
+}
+
 async function buildInWork(onLine) {
   onLine('==> Init submodules');
   if (await sh(`git submodule update --init ${SUBMODULES.join(' ')}`, {}, onLine))
@@ -199,18 +271,7 @@ async function buildInWork(onLine) {
   for (const leaf of VENDOR_LEAVES)
     if (await sh(`${PNPM} run ${leaf}`, { cwd: APP_DIR }, onLine)) return fail(onLine, `vendor ${leaf}`);
 
-  // Inject the builder's Google OAuth credentials so the app can offer "Connect
-  // Google Drive". Without this file the app still builds, but shows "Google Drive
-  // not configured in this build" and the Connect button is disabled. The creds
-  // are NEXT_PUBLIC_* and get baked into the frontend by `next build`, so this
-  // must happen before it.
-  const credsFile = join(MOD_ROOT, 'tooling', 'mod', 'credentials.env');
-  if (existsSync(credsFile)) {
-    await copyFile(credsFile, join(APP_DIR, '.env.local'));
-    onLine('==> Google credentials injected — Drive connect will be enabled');
-  } else {
-    onLine('==> No tooling/mod/credentials.env — building WITHOUT Google Drive (Connect disabled).');
-  }
+  await injectClientConfig(onLine);
 
   onLine('==> Build frontend');
   if (await sh(`${PNPM} build`, { cwd: APP_DIR }, onLine)) return fail(onLine, 'next build');

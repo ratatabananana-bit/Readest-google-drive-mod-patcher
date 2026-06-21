@@ -1,3 +1,15 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 49153bd1..b21e9ee2 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -71,6 +71,7 @@ dependencies = [
+  "tokio",
+  "tokio-util",
+  "walkdir",
++ "winreg",
+  "zip 2.4.2",
+ ]
+ 
 diff --git a/MOD.md b/MOD.md
 new file mode 100644
 index 00000000..1eb01b85
@@ -217,6 +229,42 @@ index 00000000..55e9c194
 +  console.error('\nSmoke test error:', err instanceof Error ? err.message : err);
 +  process.exit(1);
 +});
+diff --git a/apps/readest-app/src-tauri/Cargo.toml b/apps/readest-app/src-tauri/Cargo.toml
+index 58de1607..6668ce4e 100644
+--- a/apps/readest-app/src-tauri/Cargo.toml
++++ b/apps/readest-app/src-tauri/Cargo.toml
+@@ -110,6 +110,12 @@ objc2 = "0.6"
+ objc2-authentication-services = "0.3"
+ objc2-foundation = { version = "0.3", features = ["NSError", "NSArray"] }
+ 
++[target.'cfg(windows)'.dependencies]
++# Resolve the user's default browser (UserChoice association) so the cloud-sync
++# OAuth fallback spawns THEIR browser, not a hard-coded one. Already in the
++# workspace lock via tauri-plugin-deep-link.
++winreg = "0.55"
++
+ [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+ tauri-plugin-cli = "2"
+ tauri-plugin-single-instance = "2"
+diff --git a/apps/readest-app/src-tauri/build.rs b/apps/readest-app/src-tauri/build.rs
+index 46afa548..12270726 100644
+--- a/apps/readest-app/src-tauri/build.rs
++++ b/apps/readest-app/src-tauri/build.rs
+@@ -20,7 +20,13 @@ fn build_windows_thumbnail() {
+     let profile = env::var("PROFILE").unwrap_or_else(|_| "debug".into());
+ 
+     let mut cmd = Command::new(env::var("CARGO").unwrap_or("cargo".into()));
+-    cmd.arg("build")
++    // Build into windows-thumbnail's OWN target/ (where the DLL is collected below),
++    // NOT the parent build's CARGO_TARGET_DIR. Inheriting it makes this nested cargo
++    // contend for the same target-dir lock the parent already holds → hard deadlock
++    // (the patcher sets CARGO_TARGET_DIR to dodge the space-in-path linker bug, which
++    // is exactly what triggers this), and would also drop the DLL in the wrong dir.
++    cmd.env_remove("CARGO_TARGET_DIR")
++        .arg("build")
+         .arg("--package")
+         .arg("windows_thumbnail")
+         .arg("--manifest-path")
 diff --git a/apps/readest-app/src-tauri/capabilities/default.json b/apps/readest-app/src-tauri/capabilities/default.json
 index 127dd322..7a582e10 100644
 --- a/apps/readest-app/src-tauri/capabilities/default.json
@@ -241,6 +289,334 @@ index 127dd322..7a582e10 100644
          }
        ]
      },
+diff --git a/apps/readest-app/src-tauri/plugins/tauri-plugin-native-bridge/android/src/main/java/NativeBridgePlugin.kt b/apps/readest-app/src-tauri/plugins/tauri-plugin-native-bridge/android/src/main/java/NativeBridgePlugin.kt
+index 7370c2c2..0106502e 100644
+--- a/apps/readest-app/src-tauri/plugins/tauri-plugin-native-bridge/android/src/main/java/NativeBridgePlugin.kt
++++ b/apps/readest-app/src-tauri/plugins/tauri-plugin-native-bridge/android/src/main/java/NativeBridgePlugin.kt
+@@ -167,6 +167,14 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
+         private const val REQUEST_MANAGE_STORAGE = 1001
+         private const val FOLDER_PICKER_REQUEST_CODE = 1002
+         var pendingInvoke: Invoke? = null
++        // The exact custom scheme the in-flight Custom-Tab sign-in expects its
++        // redirect on — the redirect_uri scheme of the auth request (e.g. the
++        // Google iOS-client reverse-DNS scheme). Matched precisely so a stray deep
++        // link can't resolve the wrong sign-in. Null when no OAuth sign-in pends.
++        var pendingOAuthScheme: String? = null
++        // True between launching the OAuth Custom Tab and receiving its redirect;
++        // onResume uses it to detect a user who dismissed the tab without consenting.
++        var customTabInFlight = false
+         var pendingFolderPickerInvoke: Invoke? = null
+         private var instance: NativeBridgePlugin? = null
+         fun getInstance(): NativeBridgePlugin? = instance
+@@ -182,6 +190,20 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
+         handleIntent(intent)
+     }
+ 
++    override fun onResume() {
++        // Returning to the app from the OAuth Custom Tab. If a sign-in was in flight
++        // and no redirect resolved it (handleIntent clears customTabInFlight on the
++        // redirect, and onNewIntent runs before onResume for a singleTask redirect),
++        // the user dismissed the tab without consenting — settle the pending invoke
++        // so the connect spinner doesn't hang forever.
++        if (customTabInFlight && pendingInvoke != null) {
++            pendingInvoke?.reject("Sign-in was cancelled")
++            pendingInvoke = null
++            pendingOAuthScheme = null
++        }
++        customTabInFlight = false
++    }
++
+     private fun handleIntent(intent: Intent?) {
+         if (intent == null) return
+         Log.d("NativeBridgePlugin", "Received intent: action=${intent.action} data=${intent.data}")
+@@ -189,12 +211,29 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
+         // OAuth callback uses a custom scheme on intent.data and is handled
+         // separately from any user-shared content.
+         intent.data?.let { uri ->
+-            if (uri.scheme == "readest" && uri.host == "auth-callback") {
++            // Resolve an in-flight Custom-Tab sign-in (auth_with_custom_tab) by
++            // matching the returning deep link precisely against the request it
++            // answers:
++            //  - Readest's own Supabase login: the readest://auth-callback scheme+host.
++            //  - The Drive-sync mod's Google OAuth: the EXACT reverse-DNS scheme of
++            //    this request's redirect_uri (captured as pendingOAuthScheme), and
++            //    only when it carries an auth code/error.
++            // Matching the exact scheme (not a prefix) plus requiring code|error means
++            // a stray or hostile com.googleusercontent.apps.* deep link can't
++            // prematurely resolve a different sign-in. PKCE + the state check in
++            // parseRedirect remain the real integrity guard; this is defence in depth.
++            val isReadestCallback = uri.scheme == redirectScheme && uri.host == redirectHost
++            val isOAuthRedirect = pendingOAuthScheme != null &&
++                uri.scheme == pendingOAuthScheme &&
++                (uri.getQueryParameter("code") != null || uri.getQueryParameter("error") != null)
++            if (pendingInvoke != null && (isReadestCallback || isOAuthRedirect)) {
+                 val result = JSObject().apply {
+                     put("redirectUrl", uri.toString())
+                 }
+                 pendingInvoke?.resolve(result)
+                 pendingInvoke = null
++                pendingOAuthScheme = null
++                customTabInFlight = false
+                 return
+             }
+         }
+@@ -338,6 +377,16 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
+         val args = invoke.parseArgs(AuthRequestArgs::class.java)
+         val uri = Uri.parse(args.authUrl)
+ 
++        // A prior attempt the user backed out of would leave pendingInvoke set and
++        // never resolve; reject it so only the newest sign-in is pending.
++        pendingInvoke?.reject("Superseded by a new sign-in attempt")
++
++        // The exact scheme this sign-in's redirect will arrive on, read from the
++        // auth request's own redirect_uri (the Google OAuth flow; absent for
++        // Readest's Supabase login, which matches on readest://auth-callback instead).
++        pendingOAuthScheme = uri.getQueryParameter("redirect_uri")?.let { Uri.parse(it).scheme }
++        customTabInFlight = true
++
+         val customTabsIntent = CustomTabsIntent.Builder().build()
+         customTabsIntent.intent.flags = Intent.FLAG_ACTIVITY_NO_HISTORY
+ 
+@@ -1014,8 +1063,11 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
+             }
+         }
+ 
++        // Resolve the folder-picker's own invoke only. (Historically this also
++        // cleared the shared `pendingInvoke`, which now backs the OAuth Custom-Tab
++        // flow — nulling it here would strand an in-flight sign-in. The picker uses
++        // `pendingFolderPickerInvoke`, cleared in handleActivityResult.)
+         invoke.resolve(result)
+-        pendingInvoke = null
+     }
+ 
+     private fun extractPathFromUri(uri: Uri): String? {
+diff --git a/apps/readest-app/src-tauri/src/lib.rs b/apps/readest-app/src-tauri/src/lib.rs
+index 591ee125..8614e197 100644
+--- a/apps/readest-app/src-tauri/src/lib.rs
++++ b/apps/readest-app/src-tauri/src/lib.rs
+@@ -33,6 +33,10 @@ mod mobi_parser;
+ mod nightly_update;
+ mod parser_common;
+ mod range_file;
++// MOD(cloud-sync): desktop reverse-DNS OAuth fallback — spawn a cold browser
++// process so the redirect routes back (one iOS client, no secret).
++#[cfg(desktop)]
++mod spawn_fresh_browser;
+ mod transfer_file;
+ #[cfg(desktop)]
+ mod window_state;
+@@ -291,6 +295,8 @@ pub fn run() {
+             #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
+             discord_rpc::clear_book_presence,
+             clip_url::clip_url,
++            #[cfg(desktop)]
++            spawn_fresh_browser::spawn_fresh_browser,
+             nightly_update::verify_update_signature,
+             #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
+             nightly_update::install_nightly_update,
+diff --git a/apps/readest-app/src-tauri/src/spawn_fresh_browser.rs b/apps/readest-app/src-tauri/src/spawn_fresh_browser.rs
+new file mode 100644
+index 00000000..33534f6a
+--- /dev/null
++++ b/apps/readest-app/src-tauri/src/spawn_fresh_browser.rs
+@@ -0,0 +1,181 @@
++//! Cloud-sync mod: open a URL in a freshly-spawned, isolated browser process.
++//!
++//! Why this exists: Windows snapshots URL-protocol associations per browser
++//! process at launch. A browser already running before the app registered its
++//! reverse-DNS OAuth scheme (`app.deep_link().register_all()`) therefore reports
++//! the scheme as having no registered handler and silently drops the redirect.
++//! Launching a NEW browser process with its OWN `--user-data-dir` forces a cold
++//! association read, so the just-registered scheme routes the redirect back to the
++//! app. This is the fallback the desktop OAuth runner uses when the user's default
++//! browser does not return within the grace period — see
++//! `services/cloudprovider/googleAuth/oauthDesktopDeepLink.ts`.
++//!
++//! We spawn the user's OWN default browser when it is Chromium-based (a familiar
++//! window, far less alarming than a surprise foreign browser), falling back to
++//! Microsoft Edge only when the default is not Chromium-based — Edge ships on every
++//! Windows 10/11 install and routes custom schemes reliably. Forcing an isolated
++//! cold process requires the Chromium `--user-data-dir` flag, hence the family
++//! check. A stable per-user profile directory is reused so a returning user keeps
++//! their Google session across reconnects, and is isolated from the user's real
++//! profile so spawning it never disturbs their open browser.
++
++#[cfg(target_os = "windows")]
++use std::path::{Path, PathBuf};
++
++/// Subdirectory (under the system temp dir) for the fallback browser's isolated
++/// profile.
++#[cfg(target_os = "windows")]
++const FALLBACK_PROFILE_DIR: &str = "readest-gmod-oauth-browser";
++
++/// Executable stems (lower-cased, no extension) of Chromium-based browsers, which
++/// all accept `--user-data-dir` to spawn an isolated cold process.
++#[cfg(target_os = "windows")]
++const CHROMIUM_BROWSER_STEMS: [&str; 7] = [
++    "chrome", "chromium", "msedge", "brave", "vivaldi", "opera", "thorium",
++];
++
++/// Resolve the user's default `https` browser executable from its per-user
++/// UserChoice association (`ProgId` -> `shell\open\command`). Returns `None` if the
++/// association is missing/unreadable or the resolved path does not exist.
++#[cfg(target_os = "windows")]
++fn resolve_default_browser() -> Option<PathBuf> {
++    use winreg::enums::{HKEY_CLASSES_ROOT, HKEY_CURRENT_USER};
++    use winreg::RegKey;
++
++    const USER_CHOICE_KEY: &str =
++        r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice";
++
++    let prog_id: String = RegKey::predef(HKEY_CURRENT_USER)
++        .open_subkey(USER_CHOICE_KEY)
++        .ok()?
++        .get_value("ProgId")
++        .ok()?;
++    let command: String = RegKey::predef(HKEY_CLASSES_ROOT)
++        .open_subkey(format!(r"{prog_id}\shell\open\command"))
++        .ok()?
++        .get_value("")
++        .ok()?;
++    let exe = exe_path_from_command(&command)?;
++    exe.exists().then_some(exe)
++}
++
++/// Extract the executable path from a `shell\open\command` string. Handles the
++/// usual quoted form (`"C:\...\app.exe" --flags %1`) and a best-effort unquoted
++/// form (up to the first space). Pure (no filesystem access) so it is unit-tested.
++#[cfg(target_os = "windows")]
++fn exe_path_from_command(command: &str) -> Option<PathBuf> {
++    let trimmed = command.trim_start();
++    let exe = match trimmed.strip_prefix('"') {
++        Some(rest) => rest.split('"').next()?,
++        None => trimmed.split_whitespace().next()?,
++    };
++    (!exe.is_empty()).then(|| PathBuf::from(exe))
++}
++
++/// Whether the executable is a Chromium-based browser (so it accepts
++/// `--user-data-dir`). Matched on the lower-cased file stem.
++#[cfg(target_os = "windows")]
++fn is_chromium_family(exe: &Path) -> bool {
++    exe.file_stem()
++        .and_then(|stem| stem.to_str())
++        .map(|stem| {
++            let lowered = stem.to_ascii_lowercase();
++            CHROMIUM_BROWSER_STEMS.contains(&lowered.as_str())
++        })
++        .unwrap_or(false)
++}
++
++/// Resolve Microsoft Edge's executable from the standard install locations,
++/// honouring a non-default `Program Files` drive via the environment. Probes the
++/// 32-bit root first (Edge's historical home), then both 64-bit roots
++/// (`ProgramW6432` resolves the real 64-bit path even from a 32-bit process).
++#[cfg(target_os = "windows")]
++fn find_edge() -> Option<PathBuf> {
++    const EDGE_SUFFIX: &str = r"Microsoft\Edge\Application\msedge.exe";
++    ["ProgramFiles(x86)", "ProgramW6432", "ProgramFiles"]
++        .iter()
++        .filter_map(|var| std::env::var(var).ok())
++        .map(|base| PathBuf::from(base).join(EDGE_SUFFIX))
++        .find(|path| path.exists())
++}
++
++/// Open `url` in a freshly-spawned, isolated (cold) browser process so it routes
++/// the reverse-DNS OAuth redirect back to the app. Prefers the user's own default
++/// browser when it is Chromium-based; otherwise uses Edge. See the module docs for
++/// why a cold process is required.
++#[cfg(all(desktop, target_os = "windows"))]
++#[tauri::command]
++pub async fn spawn_fresh_browser(url: String) -> Result<(), String> {
++    use std::process::Command;
++
++    let browser = resolve_default_browser()
++        .filter(|exe| is_chromium_family(exe))
++        .or_else(find_edge)
++        .ok_or_else(|| "No Chromium-based browser found to open the sign-in window".to_string())?;
++    let profile_dir = std::env::temp_dir().join(FALLBACK_PROFILE_DIR);
++
++    Command::new(browser)
++        .arg(format!("--user-data-dir={}", profile_dir.display()))
++        .arg("--no-first-run")
++        .arg("--no-default-browser-check")
++        .arg("--new-window")
++        .arg(url)
++        .spawn()
++        .map_err(|e| format!("Could not open the sign-in browser: {}", e))?;
++    Ok(())
++}
++
++/// Non-Windows desktop targets are a no-op success: the per-process association
++/// cache that defeats the default browser is a Windows-specific behaviour, so the
++/// default-browser open already covered the redirect path there.
++#[cfg(all(desktop, not(target_os = "windows")))]
++#[tauri::command]
++pub async fn spawn_fresh_browser(_url: String) -> Result<(), String> {
++    Ok(())
++}
++
++#[cfg(all(test, target_os = "windows"))]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn extracts_quoted_exe_ignoring_trailing_args() {
++        let command = r#""C:\Users\me\AppData\Local\Chromium\Application\chrome.exe" --foo --single-argument %1"#;
++        assert_eq!(
++            exe_path_from_command(command),
++            Some(PathBuf::from(
++                r"C:\Users\me\AppData\Local\Chromium\Application\chrome.exe"
++            )),
++        );
++    }
++
++    #[test]
++    fn extracts_unquoted_exe_up_to_first_space() {
++        assert_eq!(
++            exe_path_from_command(r"C:\Apps\browser.exe %1"),
++            Some(PathBuf::from(r"C:\Apps\browser.exe")),
++        );
++    }
++
++    #[test]
++    fn returns_none_for_empty_command() {
++        assert_eq!(exe_path_from_command("   "), None);
++        assert_eq!(exe_path_from_command(r#""""#), None);
++    }
++
++    #[test]
++    fn recognises_chromium_browsers_by_stem() {
++        for exe in [r"C:\x\chrome.exe", r"C:\x\msedge.exe", r"C:\x\Brave.exe"] {
++            assert!(
++                is_chromium_family(Path::new(exe)),
++                "{exe} should be Chromium-family"
++            );
++        }
++    }
++
++    #[test]
++    fn rejects_non_chromium_browsers() {
++        assert!(!is_chromium_family(Path::new(r"C:\x\firefox.exe")));
++        assert!(!is_chromium_family(Path::new(r"C:\x\iexplore.exe")));
++    }
++}
+diff --git a/apps/readest-app/src-tauri/tauri.conf.json b/apps/readest-app/src-tauri/tauri.conf.json
+index f6264f75..950b11c9 100644
+--- a/apps/readest-app/src-tauri/tauri.conf.json
++++ b/apps/readest-app/src-tauri/tauri.conf.json
+@@ -163,7 +163,10 @@
+         { "scheme": ["readest"], "appLink": false }
+       ],
+       "desktop": {
+-        "schemes": ["readest"]
++        "schemes": [
++          "readest",
++          "com.googleusercontent.apps.433627266031-77n0mfpr6e88vv80luhiafp9h07kh8lb"
++        ]
+       }
+     },
+     "updater": {
 diff --git a/apps/readest-app/src/__tests__/cloudprovider/driveRest.test.ts b/apps/readest-app/src/__tests__/cloudprovider/driveRest.test.ts
 new file mode 100644
 index 00000000..3df677bb
@@ -858,6 +1234,288 @@ index 00000000..d12eef3d
 +    );
 +
 +    expect(calls).toEqual([[bytes.byteLength, bytes.byteLength]]);
++  });
++});
+diff --git a/apps/readest-app/src/__tests__/cloudprovider/oauthAndroid.test.ts b/apps/readest-app/src/__tests__/cloudprovider/oauthAndroid.test.ts
+new file mode 100644
+index 00000000..ab10bd1e
+--- /dev/null
++++ b/apps/readest-app/src/__tests__/cloudprovider/oauthAndroid.test.ts
+@@ -0,0 +1,71 @@
++import { describe, it, expect, vi } from 'vitest';
++import { deriveReverseDnsRedirectUri } from '@/services/cloudprovider/googleAuth/reverseDnsRedirect';
++import { runAndroidOAuth } from '@/services/cloudprovider/googleAuth/oauthAndroid';
++import { authWithCustomTab } from '@/app/auth/utils/nativeAuth';
++
++// runAndroidOAuth drives Readest's native Custom-Tab bridge; mock it so the flow
++// runs headlessly (vi.mock is hoisted above the import above). Each test sets the
++// implementation it needs.
++vi.mock('@/app/auth/utils/nativeAuth', () => ({ authWithCustomTab: vi.fn() }));
++
++/**
++ * The derived redirect URI must match, byte-for-byte, both the value registered
++ * on Google's iOS-type client and the deep-link intent-filter scheme the app
++ * registers — so these cases pin the exact shape (reverse-DNS, single slash,
++ * lowercase).
++ */
++describe('deriveReverseDnsRedirectUri', () => {
++  it('builds the reverse-DNS redirect from a full Google client id', () => {
++    expect(deriveReverseDnsRedirectUri('433627266031-abc123.apps.googleusercontent.com')).toBe(
++      'com.googleusercontent.apps.433627266031-abc123:/oauthredirect',
++    );
++  });
++
++  it('lower-cases the scheme (Android intent-scheme matching is case-sensitive)', () => {
++    expect(deriveReverseDnsRedirectUri('123-AbC.apps.googleusercontent.com')).toBe(
++      'com.googleusercontent.apps.123-abc:/oauthredirect',
++    );
++  });
++
++  it('uses a single slash after the colon, not "://"', () => {
++    const uri = deriveReverseDnsRedirectUri('123-abc.apps.googleusercontent.com');
++    expect(uri).toContain(':/oauthredirect');
++    expect(uri).not.toContain('://');
++  });
++
++  it('tolerates an id already stripped of the .apps.googleusercontent.com suffix', () => {
++    expect(deriveReverseDnsRedirectUri('123-abc')).toBe(
++      'com.googleusercontent.apps.123-abc:/oauthredirect',
++    );
++  });
++});
++
++describe('runAndroidOAuth', () => {
++  const ANDROID_CLIENT = '123-abc.apps.googleusercontent.com';
++  const SCOPE = 'https://www.googleapis.com/auth/drive.file';
++
++  it('opens the Custom Tab with an auth URL whose redirect_uri is the derived scheme', async () => {
++    // Reject right after the tab opens so we only assert the request it was handed.
++    vi.mocked(authWithCustomTab).mockRejectedValue(new Error('stop after the tab opens'));
++    const fetchFn = vi.fn();
++
++    await runAndroidOAuth({ clientId: ANDROID_CLIENT, scope: SCOPE }, fetchFn).catch(
++      () => undefined,
++    );
++
++    const authUrl = vi.mocked(authWithCustomTab).mock.calls[0]![0].authUrl;
++    expect(new URL(authUrl).searchParams.get('redirect_uri')).toBe(
++      deriveReverseDnsRedirectUri(ANDROID_CLIENT),
++    );
++  });
++
++  it('rejects without exchanging a token when the sign-in is cancelled', async () => {
++    vi.mocked(authWithCustomTab).mockRejectedValue(new Error('Sign-in was cancelled'));
++    const fetchFn = vi.fn();
++
++    await expect(
++      runAndroidOAuth({ clientId: ANDROID_CLIENT, scope: SCOPE }, fetchFn),
++    ).rejects.toThrow();
++    expect(fetchFn).not.toHaveBeenCalled();
++  });
++});
+diff --git a/apps/readest-app/src/__tests__/cloudprovider/oauthDesktopDeepLink.test.ts b/apps/readest-app/src/__tests__/cloudprovider/oauthDesktopDeepLink.test.ts
+new file mode 100644
+index 00000000..87618d2f
+--- /dev/null
++++ b/apps/readest-app/src/__tests__/cloudprovider/oauthDesktopDeepLink.test.ts
+@@ -0,0 +1,199 @@
++import { describe, it, expect, vi } from 'vitest';
++import {
++  deriveReverseDnsRedirectScheme,
++  deriveReverseDnsRedirectUri,
++  matchesReverseDnsRedirect,
++} from '@/services/cloudprovider/googleAuth/reverseDnsRedirect';
++import {
++  runDesktopDeepLinkOAuth,
++  DEFAULT_FALLBACK_DELAY_MS,
++  type DesktopDeepLinkDeps,
++} from '@/services/cloudprovider/googleAuth/oauthDesktopDeepLink';
++import type { FetchFn } from '@/services/cloudprovider/googleAuth/tokenStore';
++
++const DESKTOP_CLIENT = '123-abc.apps.googleusercontent.com';
++const SCOPE = 'https://www.googleapis.com/auth/drive.file';
++const REDIRECT_URI = deriveReverseDnsRedirectUri(DESKTOP_CLIENT);
++/** A deadline far past any test's simulated time, so only the case testing it trips it. */
++const FAR_DEADLINE_MS = 60 * 60_000;
++
++/** A token endpoint that always succeeds, so a captured code completes the flow. */
++const okFetch: FetchFn = async () =>
++  ({
++    ok: true,
++    json: async () => ({ access_token: 'AT', refresh_token: 'RT', expires_in: 3600 }),
++  }) as unknown as Response;
++
++/** Drain several macrotasks so the flow's async chain (PKCE digest, openUrl) settles. */
++const flush = async () => {
++  for (let i = 0; i < 10; i++) await new Promise<void>((resolve) => setTimeout(resolve, 0));
++};
++
++/**
++ * Build fake desktop deps that record what the runner did and let the test push
++ * redirect URLs in, standing in for the real Tauri single-instance/deep-link
++ * capture and browser launches — so the orchestration is exercised headlessly.
++ */
++function makeHarness(
++  fallbackDelayMs = DEFAULT_FALLBACK_DELAY_MS,
++  connectDeadlineMs = FAR_DEADLINE_MS,
++) {
++  const openedUrls: string[] = [];
++  const spawnedUrls: string[] = [];
++  let emit: (url: string) => void = () => {};
++  let unlistened = false;
++  const deps: DesktopDeepLinkDeps = {
++    openDefaultBrowser: async (url) => {
++      openedUrls.push(url);
++    },
++    spawnFreshBrowser: async (url) => {
++      spawnedUrls.push(url);
++    },
++    subscribeRedirects: async (onUrl) => {
++      emit = onUrl;
++      return () => {
++        unlistened = true;
++      };
++    },
++    fallbackDelayMs,
++    connectDeadlineMs,
++  };
++  return {
++    deps,
++    openedUrls,
++    spawnedUrls,
++    emit: (url: string) => emit(url),
++    isUnlistened: () => unlistened,
++    stateOf: (url: string) => new URL(url).searchParams.get('state')!,
++    /** Resolve once the runner has opened the default browser (poll, not a fixed tick). */
++    waitOpened: async () => {
++      for (let i = 0; i < 200; i++) {
++        if (openedUrls.length) return;
++        await new Promise<void>((resolve) => setTimeout(resolve, 2));
++      }
++      throw new Error('default browser was never opened');
++    },
++  };
++}
++
++describe('matchesReverseDnsRedirect', () => {
++  const scheme = deriveReverseDnsRedirectScheme(DESKTOP_CLIENT);
++
++  it('matches our reverse-DNS redirect URL', () => {
++    expect(matchesReverseDnsRedirect(`${scheme}:/oauthredirect?code=x`, scheme)).toBe(true);
++  });
++
++  it('rejects unrelated schemes (book files, other deep links)', () => {
++    expect(matchesReverseDnsRedirect('readest://auth-callback', scheme)).toBe(false);
++    expect(matchesReverseDnsRedirect('file:///C:/book.epub', scheme)).toBe(false);
++  });
++
++  it('is case-insensitive on the scheme (the OS may upper-case the argv)', () => {
++    expect(matchesReverseDnsRedirect(`${scheme.toUpperCase()}:/oauthredirect`, scheme)).toBe(true);
++  });
++
++  it('does not match a different scheme that merely starts with ours (the `:` guard)', () => {
++    // `<scheme>extra:` shares the prefix but is a distinct scheme; the required
++    // trailing `:` after the exact scheme prevents a false match.
++    expect(matchesReverseDnsRedirect(`${scheme}extra:/oauthredirect`, scheme)).toBe(false);
++  });
++});
++
++describe('runDesktopDeepLinkOAuth', () => {
++  it('requests consent with the derived reverse-DNS redirect_uri', async () => {
++    const h = makeHarness();
++    const result = runDesktopDeepLinkOAuth(
++      { clientId: DESKTOP_CLIENT, scope: SCOPE },
++      okFetch,
++      h.deps,
++    );
++    await h.waitOpened();
++
++    const opened = new URL(h.openedUrls[0]!);
++    expect(opened.searchParams.get('redirect_uri')).toBe(REDIRECT_URI);
++
++    h.emit(`${REDIRECT_URI}?code=C&state=${h.stateOf(h.openedUrls[0]!)}`);
++    await result;
++  });
++
++  it('resolves the token set when the matching redirect arrives, then unlistens', async () => {
++    const h = makeHarness();
++    const result = runDesktopDeepLinkOAuth(
++      { clientId: DESKTOP_CLIENT, scope: SCOPE },
++      okFetch,
++      h.deps,
++    );
++    await h.waitOpened();
++
++    h.emit(`${REDIRECT_URI}?code=C&state=${h.stateOf(h.openedUrls[0]!)}`);
++    const tokens = await result;
++
++    expect(tokens.accessToken).toBe('AT');
++    expect(h.isUnlistened()).toBe(true);
++    expect(h.spawnedUrls).toHaveLength(0);
++  });
++
++  it('ignores unrelated incoming URLs and waits for the reverse-DNS redirect', async () => {
++    const h = makeHarness();
++    const result = runDesktopDeepLinkOAuth(
++      { clientId: DESKTOP_CLIENT, scope: SCOPE },
++      okFetch,
++      h.deps,
++    );
++    await h.waitOpened();
++
++    let settled = false;
++    void result.then(() => {
++      settled = true;
++    });
++    h.emit('file:///C:/some/book.epub');
++    h.emit('readest://other');
++    await flush();
++    expect(settled).toBe(false);
++
++    h.emit(`${REDIRECT_URI}?code=C&state=${h.stateOf(h.openedUrls[0]!)}`);
++    expect((await result).accessToken).toBe('AT');
++  });
++
++  it('spawns a fresh cold browser with the same auth URL after the fallback delay', async () => {
++    vi.useFakeTimers();
++    try {
++      const h = makeHarness(DEFAULT_FALLBACK_DELAY_MS);
++      const result = runDesktopDeepLinkOAuth(
++        { clientId: DESKTOP_CLIENT, scope: SCOPE },
++        okFetch,
++        h.deps,
++      );
++      await vi.advanceTimersByTimeAsync(0);
++      expect(h.spawnedUrls).toHaveLength(0);
++
++      await vi.advanceTimersByTimeAsync(DEFAULT_FALLBACK_DELAY_MS);
++      expect(h.spawnedUrls).toEqual([h.openedUrls[0]]);
++
++      h.emit(`${REDIRECT_URI}?code=C&state=${h.stateOf(h.openedUrls[0]!)}`);
++      expect((await result).accessToken).toBe('AT');
++    } finally {
++      vi.useRealTimers();
++    }
++  });
++
++  it('rejects after the connect deadline when no redirect ever arrives', async () => {
++    vi.useFakeTimers();
++    try {
++      const deadlineMs = 5 * 60_000;
++      const h = makeHarness(DEFAULT_FALLBACK_DELAY_MS, deadlineMs);
++      const result = runDesktopDeepLinkOAuth(
++        { clientId: DESKTOP_CLIENT, scope: SCOPE },
++        okFetch,
++        h.deps,
++      );
++      const rejection = expect(result).rejects.toThrow(/did not complete/i);
++      await vi.advanceTimersByTimeAsync(deadlineMs);
++      await rejection;
++      // The deadline must not have triggered a token exchange.
++      expect(h.isUnlistened()).toBe(true);
++    } finally {
++      vi.useRealTimers();
++    }
 +  });
 +});
 diff --git a/apps/readest-app/src/__tests__/cloudprovider/oauthFlow.test.ts b/apps/readest-app/src/__tests__/cloudprovider/oauthFlow.test.ts
@@ -2081,10 +2739,10 @@ index 00000000..c49158ef
 +});
 diff --git a/apps/readest-app/src/__tests__/drivesync/cloudSyncEnvConfig.test.ts b/apps/readest-app/src/__tests__/drivesync/cloudSyncEnvConfig.test.ts
 new file mode 100644
-index 00000000..696e6079
+index 00000000..bf2f16c9
 --- /dev/null
 +++ b/apps/readest-app/src/__tests__/drivesync/cloudSyncEnvConfig.test.ts
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,74 @@
 +import { describe, it, expect } from 'vitest';
 +import {
 +  readDriveAuthConfig,
@@ -2094,37 +2752,29 @@ index 00000000..696e6079
 +  GOOGLE_DRIVE_SYNC_SCOPE,
 +  type EnvLike,
 +} from '@/services/drivesync/cloudSyncEnvConfig';
-+import { runDesktopOAuth } from '@/services/cloudprovider/googleAuth/oauthDesktop';
++import { runDesktopDeepLinkOAuth } from '@/services/cloudprovider/googleAuth/oauthDesktopDeepLink';
 +import { runAndroidOAuth } from '@/services/cloudprovider/googleAuth/oauthAndroid';
 +
 +/**
-+ * Env keys are restated here (rather than imported) so the test pins the actual
-+ * variable names a build must set — a rename in the source should fail a test,
++ * Env key restated here (rather than imported) so the test pins the actual
++ * variable name a build must set — a rename in the source should fail a test,
 + * not silently keep passing against an imported constant.
 + */
 +const CLIENT_ID_KEY = 'NEXT_PUBLIC_GOOGLE_CLIENT_ID';
-+const CLIENT_SECRET_KEY = 'NEXT_PUBLIC_GOOGLE_CLIENT_SECRET';
 +
 +const envWith = (overrides: EnvLike): EnvLike => ({ ...overrides });
 +
 +describe('readDriveAuthConfig', () => {
-+  it('returns id + secret when both are present', () => {
-+    const config = readDriveAuthConfig(
-+      envWith({ [CLIENT_ID_KEY]: 'client-123', [CLIENT_SECRET_KEY]: 'secret-xyz' }),
-+    );
-+    expect(config).toEqual({ clientId: 'client-123', clientSecret: 'secret-xyz' });
-+  });
-+
-+  it('returns id only (no secret field) for a pure-PKCE client', () => {
++  it('returns the single iOS-type client id and never attaches a secret', () => {
 +    const config = readDriveAuthConfig(envWith({ [CLIENT_ID_KEY]: 'client-123' }));
 +    expect(config).toEqual({ clientId: 'client-123' });
-+    // The optional secret must be genuinely absent, not an explicit `undefined`,
-+    // so the shape matches `DriveAuthConfig` exactly.
++    // The one client carries no secret (reverse-DNS + PKCE are the client auth);
++    // the field must be genuinely absent so the shape matches `DriveAuthConfig`.
 +    expect(config && 'clientSecret' in config).toBe(false);
 +  });
 +
 +  it('returns null when the client id is missing', () => {
-+    expect(readDriveAuthConfig(envWith({ [CLIENT_SECRET_KEY]: 'secret-only' }))).toBeNull();
++    expect(readDriveAuthConfig(envWith({}))).toBeNull();
 +  });
 +
 +  it('treats an empty-string client id as not configured', () => {
@@ -2133,7 +2783,7 @@ index 00000000..696e6079
 +});
 +
 +describe('isGoogleDriveConfigured', () => {
-+  it('is true when a client id is present', () => {
++  it('is true when the client id is present', () => {
 +    expect(isGoogleDriveConfigured(envWith({ [CLIENT_ID_KEY]: 'client-123' }))).toBe(true);
 +  });
 +
@@ -2143,23 +2793,22 @@ index 00000000..696e6079
 +});
 +
 +describe('selectRunOAuth', () => {
-+  it('selects the Android deep-link flow on android', () => {
++  it('selects the Custom-Tab flow on Android', () => {
 +    expect(selectRunOAuth('android')).toBe(runAndroidOAuth);
 +  });
 +
-+  it('selects the desktop loopback flow on non-android platforms', () => {
-+    expect(selectRunOAuth('macos')).toBe(runDesktopOAuth);
-+    expect(selectRunOAuth('windows')).toBe(runDesktopOAuth);
-+    expect(selectRunOAuth('linux')).toBe(runDesktopOAuth);
-+    expect(selectRunOAuth('ios')).toBe(runDesktopOAuth);
++  it('selects the reverse-DNS deep-link flow on every other platform', () => {
++    expect(selectRunOAuth('windows')).toBe(runDesktopDeepLinkOAuth);
++    expect(selectRunOAuth('macos')).toBe(runDesktopDeepLinkOAuth);
++    expect(selectRunOAuth('linux')).toBe(runDesktopDeepLinkOAuth);
++    expect(selectRunOAuth('ios')).toBe(runDesktopDeepLinkOAuth);
 +  });
 +});
 +
 +describe('toOAuthClientConfig', () => {
 +  it('attaches the Drive sync scope to the auth config', () => {
-+    expect(toOAuthClientConfig({ clientId: 'client-123', clientSecret: 'secret-xyz' })).toEqual({
++    expect(toOAuthClientConfig({ clientId: 'client-123' })).toEqual({
 +      clientId: 'client-123',
-+      clientSecret: 'secret-xyz',
 +      scope: GOOGLE_DRIVE_SYNC_SCOPE,
 +    });
 +  });
@@ -3998,14 +4647,13 @@ index 686494af..0fe015d5 100644
                title={_('Readwise')}
 diff --git a/apps/readest-app/src/components/settings/integrations/CloudSyncForm.tsx b/apps/readest-app/src/components/settings/integrations/CloudSyncForm.tsx
 new file mode 100644
-index 00000000..9e4e98cf
+index 00000000..bc1e1022
 --- /dev/null
 +++ b/apps/readest-app/src/components/settings/integrations/CloudSyncForm.tsx
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,224 @@
 +import clsx from 'clsx';
 +import React, { useState } from 'react';
 +import { RiGoogleLine } from 'react-icons/ri';
-+import { platform } from '@tauri-apps/plugin-os';
 +import { useEnv } from '@/context/EnvContext';
 +import { useTranslation } from '@/hooks/useTranslation';
 +import { useSettingsStore } from '@/store/settingsStore';
@@ -4017,6 +4665,7 @@ index 00000000..9e4e98cf
 +import { getSettingsTokenPersistence } from '@/services/drivesync/settingsTokenPersistence';
 +import { readCloudAccount } from '@/services/drivesync/cloudAccount';
 +import {
++  ANDROID_PLATFORM_NAME,
 +  readDriveAuthConfig,
 +  selectRunOAuth,
 +  toOAuthClientConfig,
@@ -4049,8 +4698,14 @@ index 00000000..9e4e98cf
 + */
 +const CloudSyncForm: React.FC<CloudSyncFormProps> = ({ onBack }) => {
 +  const _ = useTranslation();
-+  const { envConfig } = useEnv();
++  const { envConfig, appService } = useEnv();
 +  const { settings } = useSettingsStore();
++
++  // Which platform's OAuth client this build uses. Android authenticates against
++  // its own iOS-type client via a reverse-DNS deep link; every other platform
++  // uses the desktop loopback client. Derived from `appService` (Readest's OS
++  // detection) rather than `platform()` so it is safe to read during render.
++  const platformName = appService?.isAndroidApp ? ANDROID_PLATFORM_NAME : 'desktop';
 +
 +  // Connected iff a token set is persisted. Derived from settings via the shared
 +  // `readCloudAccount` (one source of truth for "Drive connected", reused by the
@@ -4088,7 +4743,7 @@ index 00000000..9e4e98cf
 +    setIsBusy(true);
 +    try {
 +      const persistence = getSettingsTokenPersistence(envConfig);
-+      const runOAuth = selectRunOAuth(platform());
++      const runOAuth = selectRunOAuth(platformName);
 +      // The controller refreshes tokens (no scope needed) so it takes the bare
 +      // auth config; the interactive consent additionally needs the scope, hence
 +      // `toOAuthClientConfig` only on the `runOAuth` call.
@@ -4238,6 +4893,42 @@ index cb3a8a3b..6a6332ac 100644
  
  interface SyncContextType {
    syncClient: SyncClient;
+diff --git a/apps/readest-app/src/hooks/useAppUrlIngress.ts b/apps/readest-app/src/hooks/useAppUrlIngress.ts
+index f778cdf9..561aab8d 100644
+--- a/apps/readest-app/src/hooks/useAppUrlIngress.ts
++++ b/apps/readest-app/src/hooks/useAppUrlIngress.ts
+@@ -5,6 +5,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
+ import { useEnv } from '@/context/EnvContext';
+ import { isTauriAppPlatform } from '@/services/environment';
+ import { eventDispatcher } from '@/utils/event';
++import { GOOGLE_OAUTH_REDIRECT_SCHEME_PREFIX } from '@/services/cloudprovider/googleAuth/reverseDnsRedirect';
+ 
+ interface SingleInstancePayload {
+   args: string[];
+@@ -73,9 +74,20 @@ export function useAppUrlIngress() {
+     // and native-side listener bookkeeping in lockstep.
+ 
+     const dispatch = (urls: string[], action?: 'VIEW' | 'SEND') => {
+-      if (!urls.length) return;
+-      console.log('App incoming URL:', urls, 'action:', action);
+-      eventDispatcher.dispatch('app-incoming-url', { urls, action });
++      // Cloud-sync mod: the Google OAuth redirect uses a reverse-DNS scheme
++      // (`com.googleusercontent.apps.<id>:/oauthredirect`) that is registered as a
++      // deep link so the OS routes it back to the app — but it is consumed by the
++      // OAuth native bridge (`auth_with_custom_tab`), NOT as a file or annotation
++      // link. Drop it here so the open-with-book / annotation consumers don't try
++      // to import the redirect URL and reload the app, which would kill the
++      // in-flight sign-in (and reset the connect spinner). Every builder's redirect
++      // shares the `com.googleusercontent.apps.` prefix, so this is client-agnostic.
++      const ingressUrls = urls.filter(
++        (url) => !url.startsWith(GOOGLE_OAUTH_REDIRECT_SCHEME_PREFIX),
++      );
++      if (!ingressUrls.length) return;
++      console.log('App incoming URL:', ingressUrls, 'action:', action);
++      eventDispatcher.dispatch('app-incoming-url', { urls: ingressUrls, action });
+     };
+ 
+     const unlistenSingleInstance = getCurrentWindow().listen<SingleInstancePayload>(
 diff --git a/apps/readest-app/src/services/cloudService.ts b/apps/readest-app/src/services/cloudService.ts
 index 332c2639..771e7111 100644
 --- a/apps/readest-app/src/services/cloudService.ts
@@ -5467,48 +6158,58 @@ index 00000000..74565f62
 +};
 diff --git a/apps/readest-app/src/services/cloudprovider/googleAuth/oauthAndroid.ts b/apps/readest-app/src/services/cloudprovider/googleAuth/oauthAndroid.ts
 new file mode 100644
-index 00000000..1ce05335
+index 00000000..8355fca0
 --- /dev/null
 +++ b/apps/readest-app/src/services/cloudprovider/googleAuth/oauthAndroid.ts
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,94 @@
 +/**
-+ * Android wiring of the OAuth authorization-code + PKCE flow: a custom-scheme
-+ * deep link.
++ * Android wiring of the OAuth authorization-code + PKCE flow: a Chrome Custom Tab
++ * + reverse-DNS custom-scheme redirect.
 + *
-+ * Android has no loopback server; instead the app registers the `readest://`
-+ * URI scheme, and the provider redirects to `readest://oauth?code=...` after
-+ * consent, which the OS delivers back to the running app as a deep link. We open
-+ * the consent URL in the system browser and capture that deep link. As on
-+ * desktop, all flow logic lives in {@link runOAuthFlow}; this is just the glue
-+ * that satisfies its injected {@link OAuthFlowDeps}.
++ * Android can't use the desktop loopback flow (the system browser has no way to
++ * hand a `http://127.0.0.1` redirect back to the app). Instead we use the
++ * reverse-DNS scheme an iOS-type Google client issues —
++ * `com.googleusercontent.apps.<id>:/oauthredirect` — registered as a BROWSABLE
++ * deep-link intent-filter so the OS routes the redirect back to the app.
 + *
-+ * Confirmed plugin exports (from node_modules .d.ts):
-+ *   - `@tauri-apps/plugin-deep-link@2.4.9`:
-+ *     `onOpenUrl(handler: (urls: string[]) => void): Promise<UnlistenFn>`.
-+ *   - `@tauri-apps/plugin-opener@2.5.4`: `openUrl(url): Promise<void>`.
++ * Consent is opened in a CHROME CUSTOM TAB via Readest's native bridge command
++ * `auth_with_custom_tab` (the same one Readest's own Supabase login uses), NOT an
++ * external browser. This is deliberate and load-bearing: launching a separate
++ * browser app backgrounds the single Tauri Activity, and under memory pressure the
++ * OS destroys it — tearing down the WebView, the in-flight Promise, the redirect
++ * listener, AND the React `isBusy` spinner state, so the FIRST redirect lands on
++ * nothing (observed on-device: first attempt fails, second succeeds). A Custom Tab
++ * renders inside the host task and keeps the process at foreground importance, and
++ * the redirect resolves through a native Kotlin field that survives a WebView
++ * reload — so the first attempt completes and the spinner stays visible. The
++ * native command opens consent AND resolves with the redirect URL in one round
++ * trip. (AppAuth #448 warns of a Custom-Tab custom-scheme bounce on Android 14,
++ * but this is a host-app-owned BROWSABLE scheme — the same class as Readest's
++ * working `readest://auth-callback` — so it routes back correctly.)
++ *
++ * The iOS-type client carries NO client secret and needs NO Android SHA-1 — Google
++ * validates the redirect by string-matching the client-id-derived scheme, and PKCE
++ * is the real client authentication. This holds ONLY while Google App Check (iOS
++ * app attestation) is not enforced on the client — an Android device can't produce
++ * an iOS attestation, so turning it on would break every user at once; keep it off.
++ * One manual per-fork step remains: each builder's own client scheme must be
++ * registered in the Android manifest (the patcher injects it into tauri.conf's
++ * `deep-link.mobile` per build). See {@link deriveReverseDnsRedirectUri}.
 + */
-+import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
-+import { openUrl } from '@tauri-apps/plugin-opener';
++import { authWithCustomTab } from '@/app/auth/utils/nativeAuth';
 +import { createPkcePair } from './pkce';
++import { deriveReverseDnsRedirectUri } from './reverseDnsRedirect';
 +import { runOAuthFlow, type OAuthClientConfig } from './oauthFlow';
 +import { exchangeCode, type FetchFn, type TokenSet } from './tokenStore';
 +
 +/**
-+ * Custom-scheme redirect URI registered for the app's OAuth client. Must match
-+ * the value configured in Google Cloud and the `readest://` scheme the app
-+ * registers with the OS, so it is a single named constant shared as the source
-+ * of truth for both the auth request and the deep-link filter.
-+ */
-+const ANDROID_REDIRECT_URI = 'readest://oauth';
-+
-+/**
-+ * Run the Android deep-link OAuth flow and return the resulting tokens.
++ * Run the Android Custom-Tab OAuth flow and return the resulting tokens.
 + *
-+ * Wires {@link runOAuthFlow} with the real Android mechanics: open consent in
-+ * the system browser, and resolve the redirect from the first incoming deep link
-+ * that targets {@link ANDROID_REDIRECT_URI}.
++ * Wires {@link runOAuthFlow} with the Android mechanics: open consent in a Chrome
++ * Custom Tab and resolve with the redirect the native bridge captures.
 + *
 + * @param config - OAuth client identity + scopes; see {@link OAuthClientConfig}.
++ *   On Android this is the iOS-type client (id only, no secret).
 + * @param fetchFn - platform `fetch` used for the token exchange (Tauri's
 + *   `@tauri-apps/plugin-http` `fetch` in production).
 + */
@@ -5516,24 +6217,32 @@ index 00000000..1ce05335
 +  config: OAuthClientConfig,
 +  fetchFn: FetchFn,
 +): Promise<TokenSet> => {
++  const redirectUri = deriveReverseDnsRedirectUri(config.clientId);
++
++  // `auth_with_custom_tab` opens consent in a Custom Tab AND resolves with the
++  // redirect URL in a single native round-trip — so it needs the auth URL, which
++  // `runOAuthFlow` only hands to `openUrl`. Bridge the two with a deferred:
++  // `openUrl` supplies the URL, and `awaitRedirect` (which the flow invokes first)
++  // waits for it before driving the Custom Tab. The native side recognises the
++  // redirect by its reverse-DNS scheme, so only the auth URL needs to cross over.
++  let provideAuthUrl!: (url: string) => void;
++  const authUrlReady = new Promise<string>((resolve) => {
++    provideAuthUrl = resolve;
++  });
++
 +  return runOAuthFlow(config.scope, {
 +    createPkcePair,
 +    newState: () => crypto.randomUUID(),
 +    clientId: config.clientId,
-+    openUrl: (url) => openUrl(url),
-+    // Resolve with the first deep link addressed to our redirect URI. The OS may
-+    // deliver unrelated deep links (other `readest://` routes), so we filter to
-+    // the OAuth one rather than resolving on any incoming URL.
-+    awaitRedirect: (redirectUri) =>
-+      new Promise<string>((resolve, reject) => {
-+        onOpenUrl((urls) => {
-+          const match = urls.find((url) => url.startsWith(redirectUri));
-+          if (match) {
-+            resolve(match);
-+          }
-+        }).catch(reject);
-+      }),
-+    redirectUri: ANDROID_REDIRECT_URI,
++    openUrl: async (url) => {
++      provideAuthUrl(url);
++    },
++    awaitRedirect: async () => {
++      const authUrl = await authUrlReady;
++      const { redirectUrl } = await authWithCustomTab({ authUrl });
++      return redirectUrl;
++    },
++    redirectUri,
 +    exchange: ({ code, verifier, redirectUri }) =>
 +      exchangeCode(
 +        {
@@ -5650,9 +6359,284 @@ index 00000000..2d05e807
 +    await cancel(port).catch(() => undefined);
 +  }
 +};
+diff --git a/apps/readest-app/src/services/cloudprovider/googleAuth/oauthDesktopDeepLink.ts b/apps/readest-app/src/services/cloudprovider/googleAuth/oauthDesktopDeepLink.ts
+new file mode 100644
+index 00000000..a6351824
+--- /dev/null
++++ b/apps/readest-app/src/services/cloudprovider/googleAuth/oauthDesktopDeepLink.ts
+@@ -0,0 +1,269 @@
++/**
++ * Desktop (Windows) wiring of the OAuth authorization-code + PKCE flow: the
++ * system browser plus a reverse-DNS custom-scheme deep link.
++ *
++ * The cloud-sync mod uses ONE iOS-type Google client (no secret) on every
++ * platform, whose only Google-accepted redirect is the reverse-DNS scheme
++ * `com.googleusercontent.apps.<id>:/oauthredirect`. On desktop we open consent in
++ * the user's default browser; Google redirects to that scheme; Windows routes the
++ * scheme back to the app (the app self-registers it via Tauri's
++ * `deep_link().register_all()` — no installer, no admin, no user action), and the
++ * `single-instance` / `onOpenUrl` channels deliver the redirect URL. This is the
++ * desktop analogue of Android's Custom Tab: same client, same reverse-DNS
++ * redirect, same PKCE token exchange (no secret) — only the capture differs.
++ *
++ * The one Windows subtlety (verified empirically): a browser process only
++ * recognises the scheme if it STARTED AFTER the scheme was registered — Windows
++ * snapshots protocol associations per-process at launch. The user's everyday
++ * browser is usually already running, so it may silently fail to route the
++ * redirect. To stay reliable we open the default browser first (best UX — it
++ * keeps the user's Google session) and, if no redirect returns within a grace
++ * period, re-open consent in a freshly-spawned COLD browser process (the native
++ * `spawn_fresh_browser` command), which reads the just-registered association and
++ * routes the redirect back. Whichever browser returns first wins.
++ *
++ * @see runAndroidOAuth — the structurally identical Custom-Tab runner.
++ */
++import { invoke } from '@tauri-apps/api/core';
++import { getCurrentWindow } from '@tauri-apps/api/window';
++import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
++import { openUrl } from '@tauri-apps/plugin-opener';
++import { createPkcePair } from './pkce';
++import {
++  deriveReverseDnsRedirectScheme,
++  deriveReverseDnsRedirectUri,
++  matchesReverseDnsRedirect,
++} from './reverseDnsRedirect';
++import { runOAuthFlow, type OAuthClientConfig } from './oauthFlow';
++import { exchangeCode, type FetchFn, type TokenSet } from './tokenStore';
++
++/**
++ * Grace period before the cold-browser fallback. Long enough that a user
++ * consenting in their already-cold default browser completes first (so most
++ * connects never spawn a second window), short enough that the silent
++ * already-running-browser failure is recovered without the user feeling stuck.
++ */
++export const DEFAULT_FALLBACK_DELAY_MS = 25_000;
++
++/**
++ * Hard deadline after which an unfinished connect gives up and REJECTS, so the
++ * UI spinner clears and the user can retry instead of being stuck forever.
++ *
++ * Unlike Android's Custom Tab, the external browser gives the app no signal when
++ * the user closes the consent tab (a cancel) — so without this, an abandoned
++ * sign-in would leave the flow pending indefinitely. Deliberately generous: a
++ * real sign-in (account pick + password + possible 2FA, in a freshly-spawned
++ * session-less window) can take many minutes, and aborting a slow-but-valid
++ * sign-in is worse than a late timeout. This is a safety net, not the primary
++ * cancel path.
++ */
++export const CONNECT_DEADLINE_MS = 15 * 60_000;
++
++/**
++ * Native command (registered in `src-tauri/src/lib.rs`) that opens a URL in a
++ * freshly-spawned, isolated browser process — guaranteed to have started after
++ * the scheme was registered, so it can route the reverse-DNS redirect back.
++ */
++const SPAWN_FRESH_BROWSER_COMMAND = 'spawn_fresh_browser';
++
++/** Payload of the desktop `single-instance` event (mirrors `useAppUrlIngress`). */
++interface SingleInstancePayload {
++  args: string[];
++  cwd: string;
++}
++
++/**
++ * Platform mechanics the desktop runner needs, injected so the
++ * open-browser/capture/fallback orchestration can be exercised headlessly. The
++ * production default ({@link defaultDesktopDeepLinkDeps}) binds these to the real
++ * Tauri plugins; tests pass fakes.
++ */
++export interface DesktopDeepLinkDeps {
++  /** Open the consent URL in the user's default browser. */
++  openDefaultBrowser: (url: string) => Promise<void>;
++  /** Open the consent URL in a freshly-spawned cold browser process (fallback). */
++  spawnFreshBrowser: (url: string) => Promise<void>;
++  /**
++   * Subscribe to every redirect URL the OS delivers to the app, invoking `onUrl`
++   * for each. Resolves with an unlisten function. The runner filters the stream
++   * down to this client's reverse-DNS redirect itself.
++   */
++  subscribeRedirects: (onUrl: (url: string) => void) => Promise<() => void>;
++  /** Grace period before the cold-browser fallback fires; see {@link DEFAULT_FALLBACK_DELAY_MS}. */
++  fallbackDelayMs: number;
++  /** Hard deadline after which an unfinished connect rejects; see {@link CONNECT_DEADLINE_MS}. */
++  connectDeadlineMs: number;
++}
++
++/**
++ * Real Tauri capture: the OS hands a routed deep link to an already-running app
++ * via the `single-instance` event (Windows/Linux relaunch — the URL is `args[1]`)
++ * and via the Tauri v2 `onOpenUrl` channel. Both are armed; the caller unlistens
++ * on resolve. (Cold-start `getCurrent()` is intentionally not read: an
++ * interactive Connect always runs with the app already open, and reading a stale
++ * launch URL could resolve the flow with a past redirect that then fails the
++ * state check.)
++ */
++const subscribeRedirectsViaTauri = async (onUrl: (url: string) => void): Promise<() => void> => {
++  const unlistenSingleInstance = await getCurrentWindow().listen<SingleInstancePayload>(
++    'single-instance',
++    ({ payload }) => {
++      const url = payload.args?.[1];
++      if (url) onUrl(url);
++    },
++  );
++  let unlistenOpenUrl: () => void;
++  try {
++    unlistenOpenUrl = await onOpenUrl((urls) => {
++      urls.forEach(onUrl);
++    });
++  } catch (error) {
++    // Don't leak the already-attached first listener if the second registration
++    // fails — an orphaned `single-instance` listener would cross-wire a later attempt.
++    unlistenSingleInstance();
++    throw error;
++  }
++  return () => {
++    unlistenSingleInstance();
++    unlistenOpenUrl();
++  };
++};
++
++/** Production desktop deps, bound to the real Tauri plugins. */
++export const defaultDesktopDeepLinkDeps: DesktopDeepLinkDeps = {
++  openDefaultBrowser: (url) => openUrl(url),
++  spawnFreshBrowser: (url) => invoke<void>(SPAWN_FRESH_BROWSER_COMMAND, { url }),
++  subscribeRedirects: subscribeRedirectsViaTauri,
++  fallbackDelayMs: DEFAULT_FALLBACK_DELAY_MS,
++  connectDeadlineMs: CONNECT_DEADLINE_MS,
++};
++
++/**
++ * Await the reverse-DNS redirect, arming the cold-browser fallback and a hard
++ * deadline. Resolves with the first incoming URL whose scheme matches `scheme`;
++ * ignores every other URL the OS delivers; rejects if nothing arrives before the
++ * deadline. Listeners and timers are torn down on any outcome so a later attempt
++ * cannot cross-wire this one.
++ *
++ * @param authUrlReady - resolves with the consent URL (captured in `openUrl`), so
++ *   the fallback can re-open the exact same request in a cold browser.
++ */
++const awaitRedirectWithFallback = (
++  scheme: string,
++  authUrlReady: Promise<string>,
++  deps: DesktopDeepLinkDeps,
++): Promise<string> =>
++  new Promise<string>((resolve, reject) => {
++    let unlisten: (() => void) | undefined;
++    let settled = false;
++    const timers: ReturnType<typeof setTimeout>[] = [];
++
++    const cleanup = () => {
++      timers.forEach(clearTimeout);
++      unlisten?.();
++    };
++    const finish = (url: string) => {
++      if (settled) return;
++      settled = true;
++      cleanup();
++      resolve(url);
++    };
++    const fail = (error: unknown) => {
++      if (settled) return;
++      settled = true;
++      cleanup();
++      reject(error);
++    };
++
++    deps
++      .subscribeRedirects((url) => {
++        if (matchesReverseDnsRedirect(url, scheme)) finish(url);
++      })
++      .then((dispose) => {
++        unlisten = dispose;
++        // The redirect can land before `subscribeRedirects` resolves its unlisten;
++        // dispose immediately if so to avoid leaking the listener.
++        if (settled) dispose();
++      })
++      .catch(fail);
++
++    // Fallback: the user's default browser may have started before the app
++    // registered the scheme, so it can't route the redirect. After a grace
++    // period, open consent again in a freshly-spawned (cold) browser process,
++    // which reads the just-registered association and CAN route it back. The
++    // original listeners stay armed, so whichever browser returns first wins. A
++    // fallback failure (e.g. Edge absent) is logged, not fatal — the deadline
++    // below still bounds the wait, and the default browser may yet return.
++    timers.push(
++      setTimeout(() => {
++        authUrlReady
++          .then((authUrl) => deps.spawnFreshBrowser(authUrl))
++          .catch((error) => console.warn('Cloud sync: cold-browser fallback failed', error));
++      }, deps.fallbackDelayMs),
++    );
++
++    // Hard deadline so an abandoned sign-in (no redirect ever arrives) rejects
++    // and clears the UI spinner instead of hanging forever; see CONNECT_DEADLINE_MS.
++    timers.push(
++      setTimeout(
++        () => fail(new Error('Google sign-in did not complete in time')),
++        deps.connectDeadlineMs,
++      ),
++    );
++  });
++
++/**
++ * Run the desktop reverse-DNS deep-link OAuth flow and return the resulting
++ * tokens.
++ *
++ * Wires {@link runOAuthFlow} with the desktop mechanics: open consent in the
++ * default browser and resolve with the redirect the OS routes back, falling back
++ * to a cold browser if the default one cannot route it.
++ *
++ * @param config - OAuth client identity + scopes; see {@link OAuthClientConfig}.
++ *   This is the iOS-type client (id only, no secret) — identical to Android.
++ * @param fetchFn - platform `fetch` used for the token exchange.
++ * @param deps - injected platform mechanics; defaults to the real Tauri wiring.
++ */
++export const runDesktopDeepLinkOAuth = (
++  config: OAuthClientConfig,
++  fetchFn: FetchFn,
++  deps: DesktopDeepLinkDeps = defaultDesktopDeepLinkDeps,
++): Promise<TokenSet> => {
++  const redirectUri = deriveReverseDnsRedirectUri(config.clientId);
++  const scheme = deriveReverseDnsRedirectScheme(config.clientId);
++
++  // The cold-browser fallback (inside `awaitRedirect`) needs the consent URL,
++  // which `runOAuthFlow` only hands to `openUrl`. Bridge the two with a deferred
++  // (the same labeled idiom `runAndroidOAuth` uses): `openUrl` supplies the URL,
++  // the fallback awaits it.
++  let provideAuthUrl!: (url: string) => void;
++  const authUrlReady = new Promise<string>((resolve) => {
++    provideAuthUrl = resolve;
++  });
++
++  return runOAuthFlow(config.scope, {
++    createPkcePair,
++    newState: () => crypto.randomUUID(),
++    clientId: config.clientId,
++    openUrl: async (url) => {
++      provideAuthUrl(url);
++      await deps.openDefaultBrowser(url);
++    },
++    awaitRedirect: () => awaitRedirectWithFallback(scheme, authUrlReady, deps),
++    redirectUri,
++    exchange: ({ code, verifier, redirectUri }) =>
++      exchangeCode(
++        {
++          code,
++          verifier,
++          clientId: config.clientId,
++          // The iOS-type client carries no secret; this stays undefined (kept for
++          // shape symmetry with the loopback/Android runners).
++          clientSecret: config.clientSecret,
++          redirectUri,
++        },
++        fetchFn,
++      ),
++  });
++};
 diff --git a/apps/readest-app/src/services/cloudprovider/googleAuth/oauthFlow.ts b/apps/readest-app/src/services/cloudprovider/googleAuth/oauthFlow.ts
 new file mode 100644
-index 00000000..9bab36ab
+index 00000000..e090a249
 --- /dev/null
 +++ b/apps/readest-app/src/services/cloudprovider/googleAuth/oauthFlow.ts
 @@ -0,0 +1,105 @@
@@ -5713,7 +6697,7 @@ index 00000000..9bab36ab
 +  openUrl: (url: string) => Promise<void>;
 +  /** Resolve with the full redirect URL once the provider bounces back. */
 +  awaitRedirect: (redirectUri: string) => Promise<string>;
-+  /** Redirect URI for this platform (loopback `http://127.0.0.1:<port>` or `readest://oauth`). */
++  /** Redirect URI for this platform (loopback `http://127.0.0.1:<port>` on desktop, or the Android reverse-DNS custom scheme). */
 +  redirectUri: string;
 +  /** Exchange the authorization `code` (+ PKCE verifier) for tokens (see `tokenStore.ts`). */
 +  exchange: (args: { code: string; verifier: string; redirectUri: string }) => Promise<TokenSet>;
@@ -5763,17 +6747,18 @@ index 00000000..9bab36ab
 +};
 diff --git a/apps/readest-app/src/services/cloudprovider/googleAuth/parseRedirect.ts b/apps/readest-app/src/services/cloudprovider/googleAuth/parseRedirect.ts
 new file mode 100644
-index 00000000..e17b49ae
+index 00000000..81ec6e7b
 --- /dev/null
 +++ b/apps/readest-app/src/services/cloudprovider/googleAuth/parseRedirect.ts
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,77 @@
 +/**
 + * Parse the OAuth redirect Google sends back after the consent screen and pull
 + * out the authorization `code`, with CSRF (anti-forgery) protection.
 + *
 + * The authorization-code flow returns its result as query parameters on a
 + * redirect URL: a loopback `http://127.0.0.1:.../?code=...&state=...` on desktop,
-+ * or a custom-scheme deep link (`readest://oauth?code=...&state=...`) on Android.
++ * or a custom-scheme deep link
++ * (`com.googleusercontent.apps.<id>:/oauthredirect?code=...&state=...`) on Android.
 + * Both platforms funnel that URL through this single pure helper — no network, no
 + * platform APIs — so the security-critical checks live in exactly one place.
 + *
@@ -6011,6 +6996,76 @@ index 00000000..da81b54b
 +  params.set(AUTH_PARAM.prompt, PROMPT_CONSENT);
 +  return url.toString();
 +};
+diff --git a/apps/readest-app/src/services/cloudprovider/googleAuth/reverseDnsRedirect.ts b/apps/readest-app/src/services/cloudprovider/googleAuth/reverseDnsRedirect.ts
+new file mode 100644
+index 00000000..0d973b28
+--- /dev/null
++++ b/apps/readest-app/src/services/cloudprovider/googleAuth/reverseDnsRedirect.ts
+@@ -0,0 +1,64 @@
++/**
++ * The reverse-DNS OAuth redirect shared by every platform's runner.
++ *
++ * One iOS-type Google client (no secret, no SHA-1) serves Windows AND Android by
++ * redirecting to its "iOS URL scheme" — {@link GOOGLE_OAUTH_REDIRECT_SCHEME_PREFIX}
++ * followed by the client id's identifier part. Both the desktop deep-link runner
++ * and the Android Custom-Tab runner derive the exact same redirect from the client
++ * id here, so the auth request, the token exchange, and the registered intent-filter
++ * / desktop scheme stay byte-for-byte in agreement for every builder's own client.
++ */
++
++/**
++ * Scheme prefix of Google's reverse-DNS "iOS URL scheme". The redirect scheme is
++ * this followed by the client id's identifier part. Exported so the deep-link
++ * ingress filter ({@link useAppUrlIngress}) detects and skips OAuth redirect URLs
++ * without restating the literal. (The native Android `handleIntent` derives the
++ * exact scheme from the auth request's `redirect_uri` instead, so it keeps no copy.)
++ */
++export const GOOGLE_OAUTH_REDIRECT_SCHEME_PREFIX = 'com.googleusercontent.apps.';
++
++/** Suffix every Google OAuth client id ends with; stripped to form the scheme. */
++const GOOGLE_CLIENT_ID_SUFFIX = '.apps.googleusercontent.com';
++
++/** Path the redirect targets after the reverse-DNS scheme (a SINGLE slash). */
++const OAUTH_REDIRECT_PATH = ':/oauthredirect';
++
++/**
++ * Derive the reverse-DNS redirect SCHEME from a Google OAuth client id.
++ *
++ * Google issues an iOS-type client the scheme
++ * {@link GOOGLE_OAUTH_REDIRECT_SCHEME_PREFIX}`<X>`, where `<X>` is the client id
++ * minus its `.apps.googleusercontent.com` suffix. This is the bare scheme (no
++ * path) — what the desktop webview runner hands to the native `on_navigation`
++ * matcher and what an OS intent-filter / registry key registers. Lower-cased
++ * because OS scheme matching is case-sensitive and lowercase.
++ */
++export const deriveReverseDnsRedirectScheme = (clientId: string): string => {
++  const identifier = clientId.endsWith(GOOGLE_CLIENT_ID_SUFFIX)
++    ? clientId.slice(0, -GOOGLE_CLIENT_ID_SUFFIX.length)
++    : clientId;
++  return `${GOOGLE_OAUTH_REDIRECT_SCHEME_PREFIX}${identifier.toLowerCase()}`;
++};
++
++/**
++ * Derive the full reverse-DNS redirect URI from a Google OAuth client id: the
++ * {@link deriveReverseDnsRedirectScheme} scheme followed by `:/oauthredirect`
++ * (a SINGLE slash). Deriving it — rather than hardcoding one builder's value —
++ * keeps the auth request, the token exchange, and the registered redirect in
++ * byte-for-byte agreement for each builder's own client.
++ */
++export const deriveReverseDnsRedirectUri = (clientId: string): string =>
++  `${deriveReverseDnsRedirectScheme(clientId)}${OAUTH_REDIRECT_PATH}`;
++
++/**
++ * Whether an OS-delivered URL is *this* client's reverse-DNS OAuth redirect.
++ *
++ * Used by the desktop deep-link runner to pick our redirect out of the stream of
++ * URLs the OS can hand the app (book files, other deep links). Matched
++ * case-insensitively because Windows can relaunch the app with a differently-cased
++ * scheme in argv than was registered; the trailing `:` is required so a scheme
++ * that is a prefix of a longer one cannot false-match.
++ */
++export const matchesReverseDnsRedirect = (url: string, scheme: string): boolean =>
++  url.toLowerCase().startsWith(`${scheme.toLowerCase()}:`);
 diff --git a/apps/readest-app/src/services/cloudprovider/googleAuth/tokenStore.ts b/apps/readest-app/src/services/cloudprovider/googleAuth/tokenStore.ts
 new file mode 100644
 index 00000000..93a3745e
@@ -7026,7 +8081,7 @@ index 00000000..43af398a
 +}
 diff --git a/apps/readest-app/src/services/drivesync/cloudSyncController.ts b/apps/readest-app/src/services/drivesync/cloudSyncController.ts
 new file mode 100644
-index 00000000..c6d060e0
+index 00000000..26f354e8
 --- /dev/null
 +++ b/apps/readest-app/src/services/drivesync/cloudSyncController.ts
 @@ -0,0 +1,184 @@
@@ -7034,7 +8089,7 @@ index 00000000..c6d060e0
 + * Orchestration for connecting, disconnecting, and restoring the cloud-sync
 + * mod's single Google Drive account.
 + *
-+ * The lower layers each own one concern — `runDesktopOAuth`/`runAndroidOAuth`
++ * The lower layers each own one concern — `runDesktopDeepLinkOAuth`/`runAndroidOAuth`
 + * mint a {@link TokenSet}, {@link TokenPersistence} keeps it between runs,
 + * {@link buildDriveProvider} turns it into a usable provider, and
 + * {@link cloudSyncContext} holds the one active provider for the running app.
@@ -7216,10 +8271,10 @@ index 00000000..c6d060e0
 +};
 diff --git a/apps/readest-app/src/services/drivesync/cloudSyncEnvConfig.ts b/apps/readest-app/src/services/drivesync/cloudSyncEnvConfig.ts
 new file mode 100644
-index 00000000..52c1c5a7
+index 00000000..96b0b609
 --- /dev/null
 +++ b/apps/readest-app/src/services/drivesync/cloudSyncEnvConfig.ts
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,121 @@
 +/**
 + * Cloud-sync mod: assemble what {@link cloudSyncController} needs from the build
 + * environment and the runtime platform.
@@ -7234,7 +8289,7 @@ index 00000000..52c1c5a7
 + * environment or a native platform.
 + */
 +
-+import { runDesktopOAuth } from '../cloudprovider/googleAuth/oauthDesktop';
++import { runDesktopDeepLinkOAuth } from '../cloudprovider/googleAuth/oauthDesktopDeepLink';
 +import { runAndroidOAuth } from '../cloudprovider/googleAuth/oauthAndroid';
 +import type { OAuthClientConfig } from '../cloudprovider/googleAuth/oauthFlow';
 +import type { FetchFn, TokenSet } from '../cloudprovider/googleAuth/tokenStore';
@@ -7250,7 +8305,13 @@ index 00000000..52c1c5a7
 + * `process.env[key]`), which is what lets the inlining work.
 + */
 +const GOOGLE_CLIENT_ID_ENV_KEY = 'NEXT_PUBLIC_GOOGLE_CLIENT_ID';
-+const GOOGLE_CLIENT_SECRET_ENV_KEY = 'NEXT_PUBLIC_GOOGLE_CLIENT_SECRET';
++
++/**
++ * Tauri platform name for Android, matched by {@link selectRunOAuth} to pick the
++ * Custom-Tab runner. Exported so the wiring layer (e.g. CloudSyncForm) derives its
++ * platform string from the same constant the branch checks against.
++ */
++export const ANDROID_PLATFORM_NAME = 'android';
 +
 +/**
 + * The narrow, read-only slice of the environment this module consumes. Modeled
@@ -7268,27 +8329,25 @@ index 00000000..52c1c5a7
 + */
 +export const GOOGLE_DRIVE_SYNC_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 +
-+/** Tauri platform name for Android, matched by {@link selectRunOAuth}. */
-+const ANDROID_PLATFORM_NAME = 'android';
-+
 +/**
-+ * Signature shared by both platform OAuth runners ({@link runDesktopOAuth} /
-+ * {@link runAndroidOAuth}): given the client config (id/secret + scope) and a
-+ * platform `fetch`, run interactive consent and resolve with the minted tokens.
++ * Signature shared by both platform OAuth runners ({@link runDesktopDeepLinkOAuth}
++ * / {@link runAndroidOAuth}): given the client config (id + scope) and a platform
++ * `fetch`, run interactive consent and resolve with the minted tokens.
 + */
 +export type RunOAuth = (config: OAuthClientConfig, fetchFn: FetchFn) => Promise<TokenSet>;
 +
 +/**
-+ * Read the Google OAuth client credentials from the (injected) environment.
++ * Read the Google OAuth client id from the (injected) environment.
 + *
-+ * Returns `null` when no client id is configured, which is the signal the UI
-+ * uses to render a "not configured" state and the signal startup uses to no-op —
-+ * the app is simply built without cloud sync wired up. The secret is optional:
-+ * Google's "Desktop app" client issues a (non-confidential) secret it expects at
-+ * the token endpoint even under PKCE, while pure-PKCE clients omit it.
++ * Returns `null` when no client id is configured, which is the signal the UI uses
++ * to render a "not configured" state and the signal startup uses to no-op — the
++ * app is simply built without cloud sync wired up. ONE iOS-type client serves every
++ * platform (Windows + Android) via its reverse-DNS redirect; it carries NO secret
++ * (the reverse-DNS scheme + PKCE are the client auth), so a single client id is all
++ * the build needs.
 + *
-+ * The default argument reads the literal `process.env['NEXT_PUBLIC_*']` keys
-+ * (string-literal bracket access, which Next.js statically inlines just like dot
++ * The default argument reads the literal `process.env['NEXT_PUBLIC_GOOGLE_CLIENT_ID']`
++ * key (string-literal bracket access, which Next.js statically inlines just like dot
 + * access — and which the strict tsconfig requires for `process.env`'s index
 + * signature); the `env` parameter exists purely so tests can inject a fake
 + * environment.
@@ -7296,17 +8355,10 @@ index 00000000..52c1c5a7
 +export const readDriveAuthConfig = (
 +  env: EnvLike = {
 +    [GOOGLE_CLIENT_ID_ENV_KEY]: process.env['NEXT_PUBLIC_GOOGLE_CLIENT_ID'],
-+    [GOOGLE_CLIENT_SECRET_ENV_KEY]: process.env['NEXT_PUBLIC_GOOGLE_CLIENT_SECRET'],
 +  },
 +): DriveAuthConfig | null => {
 +  const clientId = env[GOOGLE_CLIENT_ID_ENV_KEY];
-+  if (!clientId) {
-+    return null;
-+  }
-+  const clientSecret = env[GOOGLE_CLIENT_SECRET_ENV_KEY];
-+  // Spread the secret only when present so the resulting config matches the
-+  // optional `clientSecret?` shape exactly (no explicit `undefined` field).
-+  return clientSecret ? { clientId, clientSecret } : { clientId };
++  return clientId ? { clientId } : null;
 +};
 +
 +/**
@@ -7320,16 +8372,15 @@ index 00000000..52c1c5a7
 +  readDriveAuthConfig(env) !== null;
 +
 +/**
-+ * Pick the OAuth flow for the running platform.
-+ *
-+ * Android uses a custom-scheme deep link ({@link runAndroidOAuth}); every other
-+ * platform (desktop, and the loopback-capable fallbacks) uses the loopback
-+ * server flow ({@link runDesktopOAuth}). The platform name is passed in (from
-+ * `@tauri-apps/plugin-os`'s `platform()`) so this selection is testable without
-+ * a native runtime.
++ * Pick the OAuth runner for the running platform — both use the SAME iOS-type
++ * client and its reverse-DNS redirect, differing only in how they host consent and
++ * capture the redirect. Android opens a Chrome Custom Tab ({@link runAndroidOAuth});
++ * every other platform opens the system browser and captures the reverse-DNS
++ * redirect via a deep link ({@link runDesktopDeepLinkOAuth}). The platform name is
++ * passed in (from `@tauri-apps/plugin-os`'s `platform()`) so this stays testable.
 + */
 +export const selectRunOAuth = (platformName: string): RunOAuth =>
-+  platformName === ANDROID_PLATFORM_NAME ? runAndroidOAuth : runDesktopOAuth;
++  platformName === ANDROID_PLATFORM_NAME ? runAndroidOAuth : runDesktopDeepLinkOAuth;
 +
 +/**
 + * Lift a {@link DriveAuthConfig} (id/secret) into the {@link OAuthClientConfig}
@@ -7347,10 +8398,10 @@ index 00000000..52c1c5a7
 +});
 diff --git a/apps/readest-app/src/services/drivesync/cloudSyncStartup.ts b/apps/readest-app/src/services/drivesync/cloudSyncStartup.ts
 new file mode 100644
-index 00000000..3596f435
+index 00000000..add8f77b
 --- /dev/null
 +++ b/apps/readest-app/src/services/drivesync/cloudSyncStartup.ts
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,66 @@
 +/**
 + * Cloud-sync mod: app-startup restoration of a previously connected Google Drive
 + * account.
@@ -7370,7 +8421,7 @@ index 00000000..3596f435
 +import type { EnvConfigType } from '@/services/environment';
 +import { initCloudSyncFromSettings } from './cloudSyncController';
 +import { getSettingsTokenPersistence } from './settingsTokenPersistence';
-+import { isGoogleDriveConfigured, readDriveAuthConfig } from './cloudSyncEnvConfig';
++import { readDriveAuthConfig } from './cloudSyncEnvConfig';
 +// Shared WebView fetch for all Google calls — see driveFetch.ts for why it is
 +// the WebView fetch and not @tauri-apps/plugin-http (reqwest / os error 10061).
 +import { driveFetch } from './driveFetch';
@@ -7395,8 +8446,9 @@ index 00000000..3596f435
 +export const startCloudSyncFromSettings = async (envConfig: EnvConfigType): Promise<boolean> => {
 +  if (started) return false;
 +  // Unconfigured builds carry no Google client, so there is nothing to restore.
++  // One iOS-type client serves every platform — this is platform-independent.
 +  const config = readDriveAuthConfig();
-+  if (config === null || !isGoogleDriveConfigured()) return false;
++  if (config === null) return false;
 +  started = true;
 +
 +  try {

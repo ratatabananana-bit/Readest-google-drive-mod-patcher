@@ -55,15 +55,17 @@
 
   <div class="creds">
     <div class="creds-head">
-      <span>Google Drive credentials</span>
+      <span>Google Drive sign-in</span>
       <span class="pill" id="credsStatus">checking…</span>
+      <div class="spacer"></div>
+      <button id="toggleOverride" type="button">Use my own client</button>
     </div>
-    <div class="creds-fields">
-      <input id="clientId" placeholder="Client ID (…apps.googleusercontent.com)" />
-      <input id="clientSecret" type="password" placeholder="Client Secret" />
+    <div id="overrideFields" class="creds-fields" style="display:none">
+      <input id="clientId" placeholder="Your iOS client ID (…apps.googleusercontent.com)" />
       <button id="saveCreds">Save</button>
+      <button id="resetCreds" type="button">Use default</button>
     </div>
-    <p class="hint" style="padding:0; margin:8px 0 0;">Your own Google OAuth client (Desktop type) from console.cloud.google.com → Credentials. Stored locally in tooling/mod/credentials.env — gitignored, never uploaded. No creds = Drive sign-in disabled in the build.</p>
+    <p class="hint" style="padding:0; margin:8px 0 0;">Ships with a built-in client, so users sign into their OWN Google Drive — no setup needed. Override only if you want your own <b>iOS-type</b> Google client (no secret, no SHA-1). Stored locally in tooling/mod/credentials.env — gitignored, never uploaded.</p>
   </div>
 
   <div class="bar">
@@ -125,20 +127,33 @@
 
   async function loadCreds() {
     const c = await (await fetch('/api/creds')).json();
-    $('clientId').value = c.clientId || '';
-    $('credsStatus').textContent = c.configured ? 'set ✓' : 'not set — Drive disabled';
-    $('credsStatus').style.color = c.configured ? '#7ee2a8' : '#f3a3a3';
+    $('clientId').value = c.isDefault ? '' : (c.clientId || '');
+    if (c.isDefault) { $('credsStatus').textContent = 'built-in default ✓'; $('credsStatus').style.color = '#7ee2a8'; }
+    else if (c.configured) { $('credsStatus').textContent = 'using your client ✓'; $('credsStatus').style.color = '#7ee2a8'; }
+    else { $('credsStatus').textContent = 'no client — Drive disabled'; $('credsStatus').style.color = '#f3a3a3'; }
   }
+  $('toggleOverride').onclick = () => {
+    const f = $('overrideFields');
+    f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+  };
   $('saveCreds').onclick = async () => {
     const clientId = $('clientId').value.trim();
-    const clientSecret = $('clientSecret').value.trim();
-    if (!clientId) { setBanner('err', 'Client ID is required.'); return; }
+    if (!clientId) { setBanner('err', 'Enter a client ID, or click “Use default”.'); return; }
     const r = await fetch('/api/creds', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ clientId, clientSecret }),
+      body: JSON.stringify({ clientId }),
     });
-    if (r.ok) { setBanner('ok', '✓ Credentials saved — baked into the next build.'); $('clientSecret').value = ''; loadCreds(); }
-    else { setBanner('err', '✗ Failed to save credentials.'); }
+    if (r.ok) { setBanner('ok', '✓ Saved — your client will be baked into the next build.'); loadCreds(); }
+    else { setBanner('err', '✗ Failed to save.'); }
+  };
+  $('resetCreds').onclick = async () => {
+    await fetch('/api/creds', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ clientId: '' }),
+    });
+    setBanner('ok', '✓ Reverted to the built-in default client.');
+    $('clientId').value = '';
+    loadCreds();
   };
 
   $('check').onclick = () => run('check');

@@ -9,15 +9,23 @@
 // Run via start-patcher.cmd (double-click) or: node server.mjs
 
 import { createServer } from 'node:http';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { runCheck, runUpdate, runBuild, state, listVersions } from './pipeline.mjs';
+import {
+  runCheck,
+  runUpdate,
+  runBuild,
+  state,
+  listVersions,
+  effectiveClientId,
+} from './pipeline.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PORT = 8787;
-// Builder's Google OAuth client, entered in the UI. Gitignored — never shipped.
-// The pipeline copies it to the build's .env.local so Drive sign-in works.
+// Per-builder override of the bundled default Google client, entered in the UI.
+// Gitignored — never shipped. The pipeline derives the build's .env.local + the
+// reverse-DNS deep-link scheme from whichever client id is effective.
 const CREDS_FILE = join(HERE, '..', 'mod', 'credentials.env');
 
 /** Collect a request body into a string (for the small POST endpoints). */
@@ -27,16 +35,6 @@ const readBody = (request) =>
     request.on('data', (chunk) => (data += chunk));
     request.on('end', () => resolve(data));
   });
-
-/** Parse NEXT_PUBLIC_GOOGLE_CLIENT_ID out of credentials.env (id only — never the secret). */
-const readClientId = async () => {
-  try {
-    const text = await readFile(CREDS_FILE, 'utf8');
-    return (text.match(/^NEXT_PUBLIC_GOOGLE_CLIENT_ID=(.*)$/m)?.[1] ?? '').trim();
-  } catch {
-    return '';
-  }
-};
 
 // Each action maps to a pipeline function with the shape (ref, onLine) -> code.
 const ACTIONS = {
@@ -67,21 +65,18 @@ const server = createServer(async (request, response) => {
       if (request.method === 'POST') {
         const body = JSON.parse((await readBody(request)) || '{}');
         const clientId = String(body.clientId ?? '').trim();
-        const clientSecret = String(body.clientSecret ?? '').trim();
-        if (!clientId) {
-          response.writeHead(400);
-          response.end('clientId required');
-          return;
+        // A client id writes the override; an empty value clears it and reverts
+        // to the bundled default. No secret — the iOS client type has none.
+        if (clientId) {
+          await writeFile(CREDS_FILE, `NEXT_PUBLIC_GOOGLE_CLIENT_ID=${clientId}\n`);
+        } else {
+          await rm(CREDS_FILE, { force: true });
         }
-        await writeFile(
-          CREDS_FILE,
-          `NEXT_PUBLIC_GOOGLE_CLIENT_ID=${clientId}\nNEXT_PUBLIC_GOOGLE_CLIENT_SECRET=${clientSecret}\n`,
-        );
         return sendJson(response, { ok: true });
       }
-      // GET: report whether creds are set + the client id (never the secret).
-      const clientId = await readClientId();
-      return sendJson(response, { configured: clientId.length > 0, clientId });
+      // GET: the effective client id + whether it is the bundled default.
+      const { clientId, isDefault } = await effectiveClientId();
+      return sendJson(response, { clientId, isDefault, configured: clientId.length > 0 });
     }
 
     if (url.pathname === '/api/run') {

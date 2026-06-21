@@ -1,3 +1,5 @@
 work/
 tooling/mod/credentials.env
 .env.local
+tooling/mod/android.keystore
+tooling/mod/android-signing.env
