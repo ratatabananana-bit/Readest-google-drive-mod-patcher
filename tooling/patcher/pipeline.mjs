@@ -10,7 +10,7 @@
 // browser log. Functions resolve an exit code and never reject.
 
 import { spawn } from 'node:child_process';
-import { writeFile, mkdir, readFile } from 'node:fs/promises';
+import { writeFile, mkdir, readFile, cp } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -29,6 +29,8 @@ const CLIENT_ID_OVERRIDE_FILE = join(MOD_ROOT, 'tooling', 'mod', 'credentials.en
 const CLIENT_ID_ENV_KEY = 'NEXT_PUBLIC_GOOGLE_CLIENT_ID';
 const GOOGLE_CLIENT_ID_SUFFIX = '.apps.googleusercontent.com';
 const REVERSE_DNS_SCHEME_PREFIX = 'com.googleusercontent.apps.';
+// Readest GMod app icon set (replaces Readest's own icons in the build).
+const ICONS_SRC = join(MOD_ROOT, 'tooling', 'mod', 'icons');
 
 const READEST_URL = 'https://github.com/readest/readest.git';
 // Override for fast local testing: clone from an existing checkout instead of GitHub.
@@ -272,6 +274,11 @@ async function buildInWork(onLine) {
     if (await sh(`${PNPM} run ${leaf}`, { cwd: APP_DIR }, onLine)) return fail(onLine, `vendor ${leaf}`);
 
   await injectClientConfig(onLine);
+
+  if (existsSync(ICONS_SRC)) {
+    await cp(ICONS_SRC, join(APP_DIR, 'src-tauri', 'icons'), { recursive: true });
+    onLine('==> Injected Readest GMod app icon');
+  }
 
   onLine('==> Build frontend');
   if (await sh(`${PNPM} build`, { cwd: APP_DIR }, onLine)) return fail(onLine, 'next build');
