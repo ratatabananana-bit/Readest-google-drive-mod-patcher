@@ -28,6 +28,11 @@ const PORT = 8787;
 // reverse-DNS deep-link scheme from whichever client id is effective.
 const CREDS_FILE = join(HERE, '..', 'mod', 'credentials.env');
 
+// One build at a time — concurrent builds fight over the cargo / Next.js build
+// locks and hang. Stays true until the pipeline actually finishes (even if the
+// browser tab closes mid-build), so a second run can't start on top of it.
+let buildRunning = false;
+
 /** Collect a request body into a string (for the small POST endpoints). */
 const readBody = (request) =>
   new Promise((resolve) => {
@@ -99,25 +104,37 @@ const server = createServer(async (request, response) => {
         }
       }
 
+      if (buildRunning) {
+        response.writeHead(409);
+        response.end('a build is already running — wait for it to finish');
+        return;
+      }
+      buildRunning = true;
+
       response.writeHead(200, {
         'content-type': 'text/event-stream',
         'cache-control': 'no-cache',
         connection: 'keep-alive',
       });
       const onLine = (line) => response.write(`data: ${String(line).replace(/[\r\n]+/g, ' ')}\n\n`);
-      let done = false;
-      const finish = (code) => {
-        if (done) return;
-        done = true;
-        response.write(`event: done\ndata: ${code}\n\n`);
+      let responseEnded = false;
+      const endResponse = (code) => {
+        if (responseEnded) return;
+        responseEnded = true;
+        if (code !== null) response.write(`event: done\ndata: ${code}\n\n`);
         response.end();
       };
-      request.on('close', () => finish(1));
+      // Closing the browser ends the SSE response but does NOT cancel the build —
+      // buildRunning stays set (cleared in `finally`) so nothing starts on top of it.
+      request.on('close', () => endResponse(null));
       fn(ref, onLine)
-        .then((code) => finish(code))
+        .then((code) => endResponse(code))
         .catch((err) => {
           onLine(`PIPELINE ERROR: ${err.message}`);
-          finish(1);
+          endResponse(1);
+        })
+        .finally(() => {
+          buildRunning = false;
         });
       return;
     }

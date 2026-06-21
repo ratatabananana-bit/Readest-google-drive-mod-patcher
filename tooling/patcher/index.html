@@ -74,10 +74,10 @@
     <button id="check">Check (dry run)</button>
     <button id="update" class="primary">Update &amp; Build</button>
     <div class="spacer"></div>
-    <button id="build">Build current only</button>
+    <button id="build" title="Rebuild what's already downloaded + patched — skips the download and patch steps. Faster, but won't pick up a newer Readest version.">Rebuild current</button>
   </div>
 
-  <p class="hint">“Update &amp; Build” puts our mod on the chosen Readest version and builds it. If Readest changed something we edit, it stops and shows which file needs a developer — share the log.</p>
+  <p class="hint">“Update &amp; Build” downloads the chosen Readest version, applies the Drive-sync mod, and builds the apps (Windows .exe, and the Android .apk if you have the Android tools). If Readest changed a file the mod edits, it stops and names the file — share the log.</p>
 
   <div id="banner"></div>
   <pre id="log">Ready.</pre>
@@ -100,9 +100,9 @@
   async function loadState() {
     const s = await (await fetch('/api/state')).json();
     $('state').innerHTML =
-      `Built version <span class="pill"><b>${s.cloned ? (s.current || '?') : 'not built yet'}</b></span>` +
-      `Mod targets <span class="pill"><b>${s.baseTag || '?'}</b></span>` +
-      `Latest Readest <span class="pill"><b>${s.latest || '?'}</b></span>`;
+      `Downloaded <span class="pill"><b>${s.cloned ? (s.current || '?') : 'nothing yet'}</b></span>` +
+      `Mod made for <span class="pill"><b>${s.baseTag || '?'}</b></span>` +
+      `Newest Readest <span class="pill"><b>${s.latest || '?'}</b></span>`;
     const tags = await (await fetch('/api/tags')).json();
     $('ref').innerHTML = tags.map((t) => `<option>${t}</option>`).join('');
   }
@@ -118,8 +118,8 @@
       src.close();
       buttons.forEach((b) => (b.disabled = false));
       const code = Number(e.data);
-      if (code === 0) setBanner('ok', action === 'check' ? '✓ Clean — the mod applies to this version.' : '✓ Done.');
-      else setBanner('err', action === 'check' ? '✗ Needs a developer to merge — see log.' : `✗ Failed (code ${code}) — see log.`);
+      if (code === 0) setBanner('ok', action === 'check' ? '✓ Compatible — now click “Update & Build”.' : '✓ Done — apps built (see the log for where).');
+      else setBanner('err', action === 'check' ? '✗ Needs a developer — see log.' : `✗ Failed (code ${code}) — see log.`);
       loadState();
     });
     src.onerror = () => { src.close(); buttons.forEach((b) => (b.disabled = false)); setBanner('err', '✗ Connection lost.'); };

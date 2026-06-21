@@ -46,6 +46,14 @@ Windows **Developer Mode** (for symlinks), and a one-time empty NDK stub
 Without the Android toolchain the patcher still builds the Windows exe and just skips
 the APK.
 
+### If a build hangs or won't start
+
+The patcher runs one build at a time. If you force-quit a build (e.g. closed the
+terminal mid-build), a leftover `cargo` / `node` process can keep holding a build
+lock and make the next build hang or fail with "another build is already running".
+Fix: close any leftover `cargo.exe`, `rustc.exe`, `node.exe`, or `readest.exe` in
+Task Manager (or just reboot), then build again.
+
 ## How it works
 
 ```

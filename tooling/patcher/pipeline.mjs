@@ -434,11 +434,14 @@ export async function runCheck(ref, onLine) {
   await sh('git clean -fd', {}, onLine);
   const code = await sh(`git apply --check ${q(MOD_PATCH)}`, {}, onLine);
   if (code === 0) {
-    onLine(`RESULT: CLEAN — the mod applies onto ${ref}.`);
+    onLine(`RESULT: COMPATIBLE — the mod fits Readest ${ref}.`);
+    onLine('This was only a dry run: Readest was downloaded but NOT changed yet.');
+    onLine('Click "Update & Build" to actually patch and build it (first time ~15-20 min).');
     return 0;
   }
-  onLine(`RESULT: NEEDS MERGE — the overlay does not apply cleanly to ${ref}.`);
-  onLine('Run "Update & Build": locale-only clashes auto-resolve; code clashes are reported.');
+  onLine(`RESULT: NEEDS A DEVELOPER — the mod no longer fits Readest ${ref} cleanly.`);
+  onLine('Try "Update & Build" anyway (small wording clashes fix themselves automatically);');
+  onLine('if it stops on a real clash it names the file — share the log.');
   return 1;
 }
 
