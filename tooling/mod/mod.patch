@@ -79,6 +79,15 @@ index 00000000..1eb01b85
 +  (missing `public/vendor/simplecc` build). Mod files are tsgo-clean.
 +- Local test runs need `.env` (present) + `.env.test.local` (created empty, gitignored)
 +  because `pnpm test` = `dotenv -e .env -e .env.test.local -- vitest`.
+diff --git a/apps/readest-app/.env.tauri b/apps/readest-app/.env.tauri
+index 6ec11f30..8796d1af 100644
+--- a/apps/readest-app/.env.tauri
++++ b/apps/readest-app/.env.tauri
+@@ -1,3 +1,3 @@
+ NEXT_PUBLIC_APP_PLATFORM=tauri
+ 
+-DBUS_ID=com.bilingify.readest
++DBUS_ID=com.readestgmod.app
 diff --git a/apps/readest-app/scripts/drive-smoke.ts b/apps/readest-app/scripts/drive-smoke.ts
 new file mode 100644
 index 00000000..55e9c194
@@ -391,7 +400,7 @@ index 7370c2c2..0106502e 100644
  
      private fun extractPathFromUri(uri: Uri): String? {
 diff --git a/apps/readest-app/src-tauri/src/lib.rs b/apps/readest-app/src-tauri/src/lib.rs
-index 591ee125..8614e197 100644
+index 591ee125..64722a4c 100644
 --- a/apps/readest-app/src-tauri/src/lib.rs
 +++ b/apps/readest-app/src-tauri/src/lib.rs
 @@ -33,6 +33,10 @@ mod mobi_parser;
@@ -414,6 +423,15 @@ index 591ee125..8614e197 100644
              nightly_update::verify_update_signature,
              #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
              nightly_update::install_nightly_update,
+@@ -328,7 +334,7 @@ pub fn run() {
+                 app.emit("single-instance", SingleInstancePayload { args: argv, cwd })
+                     .unwrap();
+             })
+-            .dbus_id("com.bilingify.readest".to_owned())
++            .dbus_id("com.readestgmod.app".to_owned())
+             .build(),
+     );
+ 
 diff --git a/apps/readest-app/src-tauri/src/spawn_fresh_browser.rs b/apps/readest-app/src-tauri/src/spawn_fresh_browser.rs
 new file mode 100644
 index 00000000..33534f6a
@@ -602,9 +620,20 @@ index 00000000..33534f6a
 +    }
 +}
 diff --git a/apps/readest-app/src-tauri/tauri.conf.json b/apps/readest-app/src-tauri/tauri.conf.json
-index f6264f75..950b11c9 100644
+index f6264f75..4100877e 100644
 --- a/apps/readest-app/src-tauri/tauri.conf.json
 +++ b/apps/readest-app/src-tauri/tauri.conf.json
+@@ -1,8 +1,8 @@
+ {
+   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+-  "productName": "Readest",
++  "productName": "Readest GMod",
+   "mainBinaryName": "readest",
+-  "identifier": "com.bilingify.readest",
++  "identifier": "com.readestgmod.app",
+   "version": "../package.json",
+   "build": {
+     "frontendDist": "../out",
 @@ -163,7 +163,10 @@
          { "scheme": ["readest"], "appLink": false }
        ],
