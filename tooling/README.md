@@ -24,19 +24,27 @@ on macOS/Linux). It opens `http://localhost:8787`:
 
 First run downloads Readest + builds Rust, so it's slow; later runs reuse `work/`.
 
-### Google Drive credentials (entered in the GUI)
+### Google Drive sign-in (works out of the box)
 
-The page has a **Google Drive credentials** card: paste your own **Client ID +
-Client Secret** (a Desktop-type OAuth client from
-console.cloud.google.com → Credentials) and click **Save**. They're written to
-`tooling/mod/credentials.env` (gitignored, never uploaded) and baked into the
-build so "Connect Google Drive" works. No creds → the app still builds, but Drive
-sign-in is disabled. Each builder uses their own client; users still sign into
-their own Google account (their data → their own Drive). See
-`tooling/mod/credentials.env.example` for the format.
+The build **ships with a working default Google client** (`tooling/mod/default-client-id.txt`,
+a non-secret client id), so Drive sign-in works with **zero setup** — every user
+signs into their OWN Google account (their data → their own Drive). To use your own
+client instead, open the patcher's **"Use my own client"** override and paste an
+**iOS-type** OAuth client ID (Google Cloud Console → Credentials → OAuth client ID →
+Application type: **iOS**; Bundle ID e.g. `com.readestgmod.app`). **No client secret,
+no SHA-1** — the reverse-DNS redirect + PKCE are the authentication, and the SAME one
+client serves Windows AND Android. The override is written to
+`tooling/mod/credentials.env` (gitignored, never uploaded); the patcher derives the
+app's reverse-DNS deep-link scheme from whichever client id is used.
 
 Requirements (the patcher can't bundle these): **Node, pnpm, Rust/cargo, git**.
 Self-contained means *no pre-existing Readest checkout* — not "no toolchain".
+For the **Android APK** also: **Android SDK + NDK**, **JDK 17** (`JAVA_HOME` set), the
+Rust target `aarch64-linux-android` (`rustup target add aarch64-linux-android`),
+Windows **Developer Mode** (for symlinks), and a one-time empty NDK stub
+`libadvapi32.a` in the NDK's `…/sysroot/usr/lib/aarch64-linux-android/<minSdk>/`.
+Without the Android toolchain the patcher still builds the Windows exe and just skips
+the APK.
 
 ## How it works
 
@@ -53,7 +61,9 @@ readest-gdrive-sync-mod/
 `pipeline.mjs` (driven by the browser, but it's plain Node — no bash): clone Readest
 → `git checkout <base-tag>` → `git apply mod.patch` → commit → `git rebase <chosen
 version>` (3-way; auto-resolves locale clashes, reports code clashes) → submodules →
-vendoring → `next build` → `tauri build`.
+vendoring → inject the Google client id + reverse-DNS scheme + app icon → `next build`
+→ `tauri build` (Windows exe) → `tauri android build` (APK, if the Android toolchain
+is present).
 
 ## Developer layer (editing the mod itself)
 
@@ -75,8 +85,17 @@ end users never need them — the browser patcher is self-contained.
 To go fully hands-off it would clone + overlay like `pipeline.mjs`; wire it after
 pushing to GitHub and adding `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` secrets.
 
-## Android (APK) — not buildable yet
+## Android (APK) — built by the pipeline
 
-Same pipeline, `tauri android build`, but blocked on one-time setup that isn't code:
-an **Android** Google OAuth client (package + SHA-1), the `readest://oauth` deep link
-in the Android manifest, an Android **signing keystore**, and `tauri android init`.
+The pipeline builds the **debug-signed APK** alongside the exe →
+`work/output/Readest-GMod.apk`. It does a fresh `tauri android init` (so the Android
+package matches the `Readest GMod` identifier), re-applies the hard-won post-init
+fixes (Windows pnpm `cmd /c` wrapper, adaptive-icon color, FOSS build flavor), cleans
+the tauri mobile template cache, then `tauri android build --debug --apk`. The
+reverse-DNS OAuth scheme is injected into the Android manifest the same way as
+desktop (derived from the client id) — no separate Android client and **no SHA-1**.
+
+Debug-signed is fine to ship for a sideloaded, cloud-synced app (a clean reinstall
+re-pulls everything from Drive) — see [`docs/RELEASE-SIGNING.md`](../docs/RELEASE-SIGNING.md).
+Needs the Android toolchain listed under Requirements; without it the APK step is
+skipped and only the Windows exe is built.

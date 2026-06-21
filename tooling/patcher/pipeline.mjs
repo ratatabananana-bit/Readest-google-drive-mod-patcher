@@ -10,8 +10,8 @@
 // browser log. Functions resolve an exit code and never reject.
 
 import { spawn } from 'node:child_process';
-import { writeFile, mkdir, readFile, cp } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { writeFile, mkdir, readFile, cp, rm } from 'node:fs/promises';
+import { existsSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +31,12 @@ const GOOGLE_CLIENT_ID_SUFFIX = '.apps.googleusercontent.com';
 const REVERSE_DNS_SCHEME_PREFIX = 'com.googleusercontent.apps.';
 // Readest GMod app icon set (replaces Readest's own icons in the build).
 const ICONS_SRC = join(MOD_ROOT, 'tooling', 'mod', 'icons');
+// Android APK output + the path tauri writes the debug APK to.
+const ANDROID_OUTPUT_DIR = join(MOD_ROOT, 'work', 'output');
+const APK_FILENAME = 'Readest-GMod.apk';
+const BUILT_APK = join(
+  APP_DIR, 'src-tauri', 'gen', 'android', 'app', 'build', 'outputs', 'apk', 'universal', 'debug', 'app-universal-debug.apk',
+);
 
 const READEST_URL = 'https://github.com/readest/readest.git';
 // Override for fast local testing: clone from an existing checkout instead of GitHub.
@@ -259,6 +265,129 @@ async function injectClientConfig(onLine) {
   );
 }
 
+/** Raw (unquoted) absolute pnpm path — for the Kotlin BuildTask string + the env. */
+function resolvePnpmRaw() {
+  if (!IS_WIN) return 'pnpm';
+  const candidates = [
+    join(process.env['APPDATA'] ?? '', 'npm', 'pnpm.cmd'),
+    join(process.env['ProgramFiles'] ?? '', 'nodejs', 'pnpm.cmd'),
+    join(process.env['LOCALAPPDATA'] ?? '', 'pnpm', 'pnpm.cmd'),
+  ];
+  return candidates.find((p) => p && existsSync(p)) ?? 'pnpm';
+}
+
+/** Locate the Android SDK + newest installed NDK (env first, then the default dir). */
+function resolveAndroidToolchain() {
+  const sdk =
+    process.env['ANDROID_HOME'] ||
+    process.env['ANDROID_SDK_ROOT'] ||
+    join(process.env['LOCALAPPDATA'] ?? '', 'Android', 'Sdk');
+  let ndk = process.env['NDK_HOME'] || process.env['ANDROID_NDK_HOME'] || '';
+  if (!ndk) {
+    const ndkRoot = join(sdk, 'ndk');
+    if (existsSync(ndkRoot)) {
+      const versions = readdirSync(ndkRoot)
+        .filter((v) => /^\d/.test(v))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      if (versions.length) ndk = join(ndkRoot, versions[versions.length - 1]);
+    }
+  }
+  return { sdk, ndk };
+}
+
+/**
+ * Build env for the Android toolchain: SDK/NDK + a SPACE-FREE `CARGO_TARGET_DIR`
+ * (a space in the work path breaks the NDK clang response file) + cargo and pnpm
+ * on PATH (tauri's `beforeBuildCommand` and the gradle BuildTask both need them).
+ */
+function androidEnv() {
+  const { sdk, ndk } = resolveAndroidToolchain();
+  const sep = IS_WIN ? ';' : ':';
+  const targetDir = join(homedir(), '.readest-gmod-android-target').replace(/\\/g, '/');
+  const path = [
+    join(homedir(), '.cargo', 'bin'),
+    join(process.env['APPDATA'] ?? '', 'npm'),
+    process.env.PATH ?? '',
+  ].join(sep);
+  return { ...process.env, ANDROID_HOME: sdk, NDK_HOME: ndk, ANDROID_NDK_HOME: ndk, CARGO_TARGET_DIR: targetDir, PATH: path };
+}
+
+/**
+ * Re-apply the post-`tauri android init` fixes — init regenerates `gen/android`
+ * from the identifier every time, wiping these. All three are hard-won:
+ *  1. Windows can't exec the pnpm `.cmd` directly, so wrap the gradle BuildTask's
+ *     CLI call in `cmd /c <pnpm.cmd>`.
+ *  2. AAPT needs an `ic_launcher_background` color for the adaptive icon.
+ *  3. Readest's local plugins declare a `store` flavor dim (foss/googleplay);
+ *     pick FOSS (no Play billing) to resolve build-variant ambiguity.
+ */
+async function applyAndroidPostInitFixes(onLine) {
+  const conf = JSON.parse(await readFile(join(APP_DIR, 'src-tauri', 'tauri.conf.json'), 'utf8'));
+  const pkgPath = conf.identifier.split('.').join('/');
+  const gen = join(APP_DIR, 'src-tauri', 'gen', 'android');
+
+  const buildTask = join(gen, 'buildSrc', 'src', 'main', 'java', pkgPath, 'kotlin', 'BuildTask.kt');
+  const kt = (await readFile(buildTask, 'utf8'))
+    .split('"""pnpm"""')
+    .join(`"""${resolvePnpmRaw()}"""`)
+    .split('executable(executable)')
+    .join('executable("cmd")')
+    .split('args(args)')
+    .join('args(listOf("/c", executable) + args)');
+  await writeFile(buildTask, kt);
+
+  const colors = join(gen, 'app', 'src', 'main', 'res', 'values', 'colors.xml');
+  let xml = await readFile(colors, 'utf8');
+  if (!xml.includes('ic_launcher_background'))
+    xml = xml.replace('</resources>', '    <color name="ic_launcher_background">#FFFFFFFF</color>\n</resources>');
+  await writeFile(colors, xml);
+
+  const gradle = join(gen, 'app', 'build.gradle.kts');
+  let g = await readFile(gradle, 'utf8');
+  if (!g.includes('missingDimensionStrategy'))
+    g = g.replace('defaultConfig {', 'defaultConfig {\n        missingDimensionStrategy("store", "foss")');
+  await writeFile(gradle, g);
+
+  onLine('==> Applied Android post-init fixes (pnpm wrapper, icon color, FOSS flavor)');
+}
+
+/**
+ * Build the debug APK. Regenerates `gen/android` fresh so its Kotlin package
+ * matches the renamed identifier (tauri syncs it from `identifier`), applies the
+ * post-init fixes, cleans the tauri mobile template's stale incremental cache, then
+ * runs the build and copies the APK to `work/output/`. Best-effort: if no Android
+ * SDK is present the exe is still the deliverable, so it logs and skips.
+ */
+async function buildAndroidApk(onLine) {
+  const env = androidEnv();
+  if (!env.ANDROID_HOME || !existsSync(env.ANDROID_HOME)) {
+    onLine('==> No Android SDK (set ANDROID_HOME) — skipping APK. The Windows exe is still built.');
+    return 0;
+  }
+
+  onLine('==> Android: regenerating gen/android for the current identifier');
+  await rm(join(APP_DIR, 'src-tauri', 'gen', 'android'), { recursive: true, force: true });
+  if (await sh(`${PNPM} exec tauri android init`, { cwd: APP_DIR, env }, onLine))
+    return fail(onLine, 'tauri android init');
+  await applyAndroidPostInitFixes(onLine);
+
+  // tauri's :tauri-android compile writes kotlin incremental caches INTO this source
+  // template; a stale cache then breaks the plugin-copy ("failed to copy ... os error 2").
+  await rm(join(WORK_DIR, 'packages', 'tauri', 'crates', 'tauri', 'mobile', 'android', 'build'), {
+    recursive: true,
+    force: true,
+  });
+
+  onLine('==> Android: building debug APK (aarch64)');
+  const build = `${PNPM} exec dotenv -e .env.tauri -- tauri android build --debug --apk -t aarch64`;
+  if (await sh(build, { cwd: APP_DIR, env }, onLine)) return fail(onLine, 'tauri android build');
+
+  await mkdir(ANDROID_OUTPUT_DIR, { recursive: true });
+  await cp(BUILT_APK, join(ANDROID_OUTPUT_DIR, APK_FILENAME));
+  onLine(`==> Built APK: ${join(ANDROID_OUTPUT_DIR, APK_FILENAME)}`);
+  return 0;
+}
+
 async function buildInWork(onLine) {
   onLine('==> Init submodules');
   if (await sh(`git submodule update --init ${SUBMODULES.join(' ')}`, {}, onLine))
@@ -289,7 +418,12 @@ async function buildInWork(onLine) {
     `${PNPM} exec dotenv -e .env.tauri -- tauri build --debug --no-bundle --config .patcher-tauri-override.json`;
   if (await sh(tauri, { cwd: APP_DIR, env: cargoEnv() }, onLine)) return fail(onLine, 'tauri build');
 
-  onLine(`==> Done. Built ${join(WORK_DIR, 'target', 'debug', 'readest.exe')}`);
+  onLine(`==> Built ${join(WORK_DIR, 'target', 'debug', 'readest.exe')}`);
+
+  const apkCode = await buildAndroidApk(onLine);
+  if (apkCode !== 0) return apkCode;
+
+  onLine('==> Done. Built the Windows exe (and the Android APK if the SDK was present).');
   return 0;
 }
 
