@@ -340,11 +340,9 @@ async function applyAndroidPostInitFixes(onLine, release) {
     .join('args(listOf("/c", executable) + args)');
   await writeFile(buildTask, kt);
 
-  const colors = join(gen, 'app', 'src', 'main', 'res', 'values', 'colors.xml');
-  let xml = await readFile(colors, 'utf8');
-  if (!xml.includes('ic_launcher_background'))
-    xml = xml.replace('</resources>', '    <color name="ic_launcher_background">#FFFFFFFF</color>\n</resources>');
-  await writeFile(colors, xml);
+  // (No ic_launcher_background color here: the post-`init` `tauri icon` run below
+  // generates its own res/values/ic_launcher_background.xml; adding one here too
+  // collides — "Duplicate resources [color/ic_launcher_background]".)
 
   const gradle = join(gen, 'app', 'build.gradle.kts');
   let g = await readFile(gradle, 'utf8');
@@ -383,7 +381,7 @@ async function applyAndroidPostInitFixes(onLine, release) {
   }
 
   onLine(
-    `==> Applied Android post-init fixes (pnpm wrapper, icon color, FOSS flavor${release ? ', release signing + R8 keep-rules' : ''})`,
+    `==> Applied Android post-init fixes (pnpm wrapper, FOSS flavor${release ? ', release signing + R8 keep-rules' : ''})`,
   );
 }
 
