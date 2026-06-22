@@ -1,29 +1,51 @@
 # Readest GMod — Readest with your own Google Drive sync
 
-A mod of [Readest](https://github.com/readest/readest) that replaces its built-in
-cloud sync with **your own Google Drive** — no Readest account needed. Your books,
-reading position, highlights, and reading stats sync across your devices through a
-private app folder in *your* Google Drive.
+## What this solves
 
-Works on **Windows** and **Android**, and installs **alongside** the official
-Readest (its own name "Readest GMod", its own data), so you can keep both.
+Readest's built-in sync ties you to **their** cloud, with its storage limits. This
+mod lets you sync to **your own Google Drive** instead — **15 GB free**, your data,
+no Readest account.
+
+Rather than forking Readest, we built a **patcher**: it pulls the latest Readest
+code, applies the mod, and produces both a **desktop app** (Windows `.exe`) and an
+**Android APK**. We chose a patcher over a fork because:
+
+1. It's **safer and more update-proof** — it builds on top of upstream Readest.
+2. There's **no separate fork to keep maintaining**.
+3. It's a **more modular** solution.
+
+The result installs **alongside** the official Readest ("Readest GMod", its own
+data), so you can keep both.
 
 ---
 
-## Download & use (no building)
+## How to install
 
-Grab the latest files from the [**Releases**](../../releases) page:
+Two options:
 
-- **Windows** — `readest.exe` (portable, just run it).
-  SmartScreen will warn "unknown publisher" because the app isn't code-signed →
-  click **More info → Run anyway**. (Normal for indie apps.)
-- **Android** — `Readest-GMod.apk` (sideload it; allow **install from unknown
-  sources** for your browser/file app when prompted).
+### 1. Build it yourself with the patcher (most trustworthy)
+The patcher pulls the **latest** Readest automatically, so the source never needs
+manual updating. Double-click **`tooling/patcher/start-patcher.cmd`** (Windows) — a
+page opens at `http://localhost:8787`. Pick a Readest version, click
+**Update & Build**, and it produces the `.exe` (and the `.apk` if you have the
+Android tools). Tick **Release (smaller)** for optimized files. Requirements + full
+steps are below and in [`tooling/README.md`](tooling/README.md).
 
-### Signing in — this is the important part
+### 2. Download a prebuilt release
+Grab the files from the [**Releases**](../../releases) page:
+- **Windows** — `readest.exe` (portable; SmartScreen → More info → Run anyway).
+- **Android** — `Readest-GMod.apk` (sideload; allow install from unknown sources).
 
-Readest GMod does **not** use a Readest account. Instead you connect **your own
-Google Drive**, and that becomes your sync:
+> ⚠️ **Only use releases you trust.** A prebuilt binary is built by *someone* — if
+> you have any doubt about a release, **build your own with the patcher** instead.
+> Trust matters here.
+
+---
+
+## Signing in
+
+Readest GMod does **not** use a Readest account. You connect **your own Google
+Drive**, and that becomes your sync:
 
 1. Open the app.
 2. Go to **Settings → Integrations → Cloud Sync (Google Drive)**.
@@ -40,22 +62,7 @@ other. Your data lives in your Drive, so a fresh install just re-downloads it.
 
 ---
 
-## Build it yourself (optional)
-
-This repo is also a **patcher**: it clones Readest, applies the mod, and builds the
-apps on your machine — so you can build from any Readest version, or use your own
-Google client instead of the bundled default.
-
-Double-click **`tooling/patcher/start-patcher.cmd`** (Windows) — it opens a page at
-`http://localhost:8787`. Pick a Readest version, click **Update & Build**, and it
-produces the Windows `.exe` (and the Android `.apk` if you have the Android tools).
-Tick **Release (smaller)** for optimized, much smaller files.
-
-It ships with a working built-in Google client, so Drive sign-in works out of the
-box. To use your own, open **"Use my own client"** and paste an **iOS-type** Google
-OAuth client ID (no secret, no SHA-1).
-
-### Requirements (to build)
+## Build requirements
 
 The patcher builds a Tauri (Rust + web) app from source, so it needs a build
 toolchain — install these yourself:
@@ -73,6 +80,10 @@ toolchain — install these yourself:
 `work/`, the Readest clone + `node_modules` + the Rust build cache (`target/`,
 ~5–10 GB). Deleting `work/` reclaims the build space. Full build details + the
 Android toolchain setup: [`tooling/README.md`](tooling/README.md).
+
+By default the patcher ships a working built-in Google client, so Drive sign-in
+works out of the box. To use your own, open **"Use my own client"** and paste an
+**iOS-type** Google OAuth client ID (no secret, no SHA-1).
 
 ---
 
