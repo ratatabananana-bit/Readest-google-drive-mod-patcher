@@ -34,6 +34,7 @@ const ICONS_SRC = join(MOD_ROOT, 'tooling', 'mod', 'icons');
 // Android APK output + the path tauri writes the debug APK to.
 const ANDROID_OUTPUT_DIR = join(MOD_ROOT, 'work', 'output');
 const APK_FILENAME = 'Readest-GMod.apk';
+const EXE_FILENAME = 'Readest-GMod.exe';
 /** Where tauri writes the built APK, per build variant (debug | release). */
 const builtApkPath = (release) => {
   const variant = release ? 'release' : 'debug';
@@ -392,7 +393,7 @@ async function applyAndroidPostInitFixes(onLine, release) {
  * runs the build and copies the APK to `work/output/`. Best-effort: if no Android
  * SDK is present the exe is still the deliverable, so it logs and skips.
  */
-async function buildAndroidApk(onLine, release) {
+export async function buildAndroidApk(onLine, release) {
   const env = androidEnv();
   if (!env.ANDROID_HOME || !existsSync(env.ANDROID_HOME)) {
     onLine('==> No Android SDK (set ANDROID_HOME) — skipping APK. The Windows exe is still built.');
@@ -404,6 +405,18 @@ async function buildAndroidApk(onLine, release) {
   await rm(join(APP_DIR, 'src-tauri', 'gen', 'android'), { recursive: true, force: true });
   if (await sh(`${PNPM} exec tauri android init`, { cwd: APP_DIR, env }, onLine))
     return fail(onLine, 'tauri android init');
+
+  // `tauri android init` regenerates a VANILLA AndroidManifest.xml, stripping ~97 lines
+  // of Readest's committed manifest — most critically MANAGE_EXTERNAL_STORAGE (the "All
+  // files access" permission the app needs to bulk-import a folder of epubs) plus the
+  // file-type intent-filters (open-with). The mod never patches the manifest, so the
+  // committed HEAD version is the source of truth — restore it. Tauri's deep-link /
+  // file-association auto-gen still runs against the marked sections at build time.
+  const manifestRel = 'apps/readest-app/src-tauri/gen/android/app/src/main/AndroidManifest.xml';
+  if (await sh(`git checkout HEAD -- ${q(manifestRel)}`, { cwd: WORK_DIR, env }, onLine))
+    return fail(onLine, 'restore AndroidManifest.xml');
+  onLine('==> Android: restored Readest manifest (MANAGE_EXTERNAL_STORAGE + file intents)');
+
   await applyAndroidPostInitFixes(onLine, release);
 
   // `tauri android init` writes DEFAULT launcher icons; regenerate OURS from the SVG
@@ -466,7 +479,12 @@ async function buildInWork(onLine, release = false) {
     `${PNPM} exec dotenv -e .env.tauri -- tauri build ${release ? '' : '--debug'} --no-bundle --config .patcher-tauri-override.json`;
   if (await sh(tauri, { cwd: APP_DIR, env: cargoEnv() }, onLine)) return fail(onLine, 'tauri build');
 
-  onLine(`==> Built ${join(WORK_DIR, 'target', release ? 'release' : 'debug', 'readest.exe')}`);
+  // Copy the portable exe into work/output/ alongside the APK — both deliverables
+  // live in one place (the build leaves the exe deep under target/<profile>/).
+  const builtExe = join(WORK_DIR, 'target', release ? 'release' : 'debug', 'readest.exe');
+  await mkdir(ANDROID_OUTPUT_DIR, { recursive: true });
+  await cp(builtExe, join(ANDROID_OUTPUT_DIR, EXE_FILENAME));
+  onLine(`==> Built exe: ${join(ANDROID_OUTPUT_DIR, EXE_FILENAME)}`);
 
   const apkCode = await buildAndroidApk(onLine, release);
   if (apkCode !== 0) return apkCode;
