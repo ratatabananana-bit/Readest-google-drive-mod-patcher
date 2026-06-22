@@ -408,6 +408,16 @@ async function buildAndroidApk(onLine, release) {
     return fail(onLine, 'tauri android init');
   await applyAndroidPostInitFixes(onLine, release);
 
+  // `tauri android init` writes DEFAULT launcher icons; regenerate OURS from the SVG
+  // so gen/android gets the book+cloud (legacy mipmaps + adaptive foreground; the
+  // adaptive background resolves to the white ic_launcher_background color added above).
+  const iconSvg = join(MOD_ROOT, 'tooling', 'mod', 'app-icon.svg');
+  if (existsSync(iconSvg)) {
+    if (await sh(`${PNPM} exec tauri icon ${q(iconSvg)}`, { cwd: APP_DIR, env }, onLine))
+      return fail(onLine, 'tauri icon (android launcher)');
+    onLine('==> Android: regenerated launcher icon from app-icon.svg');
+  }
+
   // tauri's :tauri-android compile writes kotlin incremental caches INTO this source
   // template; a stale cache then breaks the plugin-copy ("failed to copy ... os error 2").
   await rm(join(WORK_DIR, 'packages', 'tauri', 'crates', 'tauri', 'mobile', 'android', 'build'), {
