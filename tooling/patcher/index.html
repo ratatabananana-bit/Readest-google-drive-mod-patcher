@@ -124,7 +124,24 @@
       else setBanner('err', action === 'check' ? '✗ Needs a developer — see log.' : `✗ Failed (code ${code}) — see log.`);
       loadState();
     });
-    src.onerror = () => { src.close(); buttons.forEach((b) => (b.disabled = false)); setBanner('err', '✗ Connection lost.'); };
+    src.onerror = () => {
+      src.close();
+      buttons.forEach((b) => (b.disabled = false));
+      // EventSource hides the HTTP status, so the usual cause — the single-build
+      // guard rejecting a second run — looks like a dropped connection. Ask the
+      // server whether a build is in progress and report the real reason.
+      fetch('/api/state')
+        .then((r) => r.json())
+        .then((s) =>
+          setBanner(
+            'err',
+            s.running
+              ? '⏳ A build is already running (this or another window). Wait for it to finish, then reload.'
+              : '✗ Connection lost.',
+          ),
+        )
+        .catch(() => setBanner('err', '✗ Connection lost.'));
+    };
   }
 
   async function loadCreds() {

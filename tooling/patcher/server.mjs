@@ -82,7 +82,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (url.pathname === '/api/state') return sendJson(response, await state());
+    if (url.pathname === '/api/state') return sendJson(response, { ...(await state()), running: buildRunning });
     if (url.pathname === '/api/tags') return sendJson(response, await listVersions());
 
     if (url.pathname === '/api/creds') {
