@@ -3,3 +3,6 @@ tooling/mod/credentials.env
 .env.local
 tooling/mod/android.keystore
 tooling/mod/android-signing.env
+
+# kept local only — never push (contains private info)
+docs/
