@@ -9,7 +9,7 @@
 // work on Windows without bash) and streams each line to `onLine` for the live
 // browser log. Functions resolve an exit code and never reject.
 
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { writeFile, mkdir, readFile, cp, rm } from 'node:fs/promises';
 import { existsSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -73,21 +73,23 @@ const VENDOR_LEAVES = [
 const q = (p) => `"${p}"`; // quote a path for the shell (handles the space in the folder name)
 
 /**
- * Absolute path to pnpm, quoted — used instead of a bare `pnpm` so the build does
- * not depend on the spawned shell's PATH (the npm global dir is on the USER PATH,
- * which child cmd.exe shells don't always inherit). Falls back to `pnpm` on PATH.
+ * Absolute path to pnpm (its `.cmd` on Windows), or a bare `pnpm` if not found.
+ * Used instead of a bare `pnpm` so the build doesn't depend on the spawned
+ * shell's PATH — the npm global dir is on the USER PATH, which child cmd.exe
+ * shells don't always inherit.
  */
-function resolvePnpm() {
+function findPnpm() {
   if (!IS_WIN) return 'pnpm';
   const candidates = [
     join(process.env['APPDATA'] ?? '', 'npm', 'pnpm.cmd'),
     join(process.env['ProgramFiles'] ?? '', 'nodejs', 'pnpm.cmd'),
     join(process.env['LOCALAPPDATA'] ?? '', 'pnpm', 'pnpm.cmd'),
   ];
-  const found = candidates.find((p) => p && existsSync(p));
-  return found ? `"${found}"` : 'pnpm';
+  return candidates.find((p) => p && existsSync(p)) ?? 'pnpm';
 }
-const PNPM = resolvePnpm();
+// Raw path for the Kotlin BuildTask string + env; quoted for shell command lines.
+const PNPM_RAW = findPnpm();
+const PNPM = PNPM_RAW === 'pnpm' ? 'pnpm' : `"${PNPM_RAW}"`;
 
 const cargoEnv = () => {
   const sep = IS_WIN ? ';' : ':';
@@ -95,21 +97,29 @@ const cargoEnv = () => {
 };
 const baseTag = async () => (await readFile(BASE_TAG_FILE, 'utf8')).trim();
 
-function sh(commandString, { cwd = WORK_DIR, env = process.env } = {}, onLine) {
+/** Stream a child's stdout+stderr to `onLine`, one trimmed line at a time.
+ *  Returns a flush that emits any unterminated trailing line on close. */
+function streamLines(child, onLine) {
+  let buffer = '';
+  const pump = (chunk) => {
+    buffer += chunk.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) onLine(line.replace(/\r$/, ''));
+  };
+  child.stdout.on('data', pump);
+  child.stderr.on('data', pump);
+  return () => buffer && onLine(buffer.replace(/\r$/, ''));
+}
+
+/** Run a process and resolve its exit code (never rejects). */
+function exec(file, args, { cwd = WORK_DIR, env = process.env, shell = false } = {}, onLine) {
   return new Promise((res) => {
-    onLine(`$ ${commandString}`);
-    const child = spawn(commandString, { cwd, env, shell: true });
-    let buffer = '';
-    const pump = (chunk) => {
-      buffer += chunk.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-      for (const line of lines) onLine(line.replace(/\r$/, ''));
-    };
-    child.stdout.on('data', pump);
-    child.stderr.on('data', pump);
+    onLine(`$ ${[file, ...args].join(' ')}`);
+    const child = spawn(file, args, { cwd, env, shell });
+    const flush = streamLines(child, onLine);
     child.on('close', (code) => {
-      if (buffer) onLine(buffer.replace(/\r$/, ''));
+      flush();
       res(code ?? 1);
     });
     child.on('error', (err) => {
@@ -119,9 +129,16 @@ function sh(commandString, { cwd = WORK_DIR, env = process.env } = {}, onLine) {
   });
 }
 
-function capture(commandString, cwd = WORK_DIR) {
+/** Run a shell command line (for `.cmd` shims like pnpm/tauri that need a shell). */
+const sh = (commandString, opts = {}, onLine) => exec(commandString, [], { ...opts, shell: true }, onLine);
+
+/** Run git with an argument vector — no shell, so refs and paths can't inject. */
+const git = (args, opts = {}, onLine) => exec('git', args, opts, onLine);
+
+/** Capture a git command's combined output (no shell). */
+function captureGit(args, cwd = WORK_DIR) {
   return new Promise((res) => {
-    const child = spawn(commandString, { cwd, shell: true });
+    const child = spawn('git', args, { cwd });
     let out = '';
     child.stdout.on('data', (d) => (out += d));
     child.stderr.on('data', (d) => (out += d));
@@ -141,10 +158,9 @@ const isCloned = () => existsSync(join(WORK_DIR, '.git'));
 export async function listVersions() {
   // When the clone exists, read its tags (cwd must be the clone); otherwise ask
   // GitHub directly via ls-remote (cwd irrelevant — it's a remote query).
-  const cmd = isCloned()
-    ? 'git tag --sort=-v:refname'
-    : `git ls-remote --tags --refs ${q(CLONE_SOURCE)}`;
-  const { out } = await capture(cmd, isCloned() ? WORK_DIR : MOD_ROOT);
+  const { out } = isCloned()
+    ? await captureGit(['tag', '--sort=-v:refname'], WORK_DIR)
+    : await captureGit(['ls-remote', '--tags', '--refs', CLONE_SOURCE], MOD_ROOT);
   const tags = out
     .split('\n')
     .map((l) => l.replace(/^.*refs\/tags\//, '').trim())
@@ -155,7 +171,7 @@ export async function listVersions() {
 
 export async function state() {
   const cloned = isCloned();
-  const current = cloned ? (await capture('git describe --tags --always')).out : null;
+  const current = cloned ? (await captureGit(['describe', '--tags', '--always'])).out : null;
   const versions = await listVersions();
   return { cloned, baseTag: await baseTag(), current, latest: versions[0] ?? null };
 }
@@ -165,12 +181,12 @@ async function ensureClone(onLine) {
   if (!isCloned()) {
     onLine('==> First run: cloning Readest into work/readest (large, one-time)…');
     await mkdir(dirname(WORK_DIR), { recursive: true });
-    if (await sh(`git clone ${q(CLONE_SOURCE)} ${q(WORK_DIR)}`, { cwd: MOD_ROOT }, onLine))
+    if (await git(['clone', CLONE_SOURCE, WORK_DIR], { cwd: MOD_ROOT }, onLine))
       return fail(onLine, 'git clone');
     // Always fetch versions from the real upstream regardless of clone source.
-    await sh(`git remote set-url origin ${q(READEST_URL)}`, {}, onLine);
+    await git(['remote', 'set-url', 'origin', READEST_URL], {}, onLine);
   }
-  await sh('git fetch origin --tags --prune', {}, onLine);
+  await git(['fetch', 'origin', '--tags', '--prune'], {}, onLine);
   return 0;
 }
 
@@ -178,27 +194,29 @@ async function ensureClone(onLine) {
 async function overlayOnto(ref, onLine) {
   const base = await baseTag();
   onLine(`==> Resetting clone to ${base} and overlaying the mod`);
-  if (await sh(`git checkout -f ${base}`, {}, onLine)) return fail(onLine, `checkout ${base}`);
-  await sh('git clean -fd', {}, onLine); // drop stray tracked-area files, keep node_modules/vendor (ignored)
-  if (await sh(`git apply --index ${q(MOD_PATCH)}`, {}, onLine)) return fail(onLine, 'apply mod overlay');
-  await sh('git -c user.email=mod@local -c user.name=mod commit -m "drive-sync mod overlay"', {}, onLine);
+  if (await git(['checkout', '-f', base], {}, onLine)) return fail(onLine, `checkout ${base}`);
+  await git(['clean', '-fd'], {}, onLine); // drop stray tracked-area files, keep node_modules/vendor (ignored)
+  if (await git(['apply', '--index', MOD_PATCH], {}, onLine)) return fail(onLine, 'apply mod overlay');
+  const author = ['-c', 'user.email=mod@local', '-c', 'user.name=mod'];
+  await git([...author, 'commit', '-m', 'drive-sync mod overlay'], {}, onLine);
 
   if (ref === base) return 0; // already on the version the overlay targets
   onLine(`==> Replaying mod onto ${ref}`);
-  if ((await sh(`git rebase ${ref}`, {}, onLine)) !== 0) {
-    const conflicts = (await capture('git diff --name-only --diff-filter=U')).out.split('\n').filter(Boolean);
+  if ((await git(['rebase', ref], {}, onLine)) !== 0) {
+    const conflicts = (await captureGit(['diff', '--name-only', '--diff-filter=U'])).out.split('\n').filter(Boolean);
     const codeConflicts = conflicts.filter((c) => !c.includes('public/locales/'));
     if (codeConflicts.length) {
       onLine('CONFLICT in code files — a developer must merge these:');
       codeConflicts.forEach((c) => onLine(`  ${c}`));
-      await sh('git rebase --abort', {}, onLine);
+      await git(['rebase', '--abort'], {}, onLine);
       return fail(onLine, `code conflicts vs ${ref}`);
     }
     onLine('Auto-resolving locale conflicts (English fallback covers mod strings).');
-    await sh(`git checkout --ours -- ${LOCALES}`, {}, onLine);
-    await sh(`git add ${LOCALES}`, {}, onLine);
-    if ((await sh('git rebase --continue', { env: { ...process.env, GIT_EDITOR: 'true' } }, onLine)) !== 0) {
-      await sh('git rebase --abort', {}, onLine);
+    await git(['checkout', '--ours', '--', LOCALES], {}, onLine);
+    await git(['add', LOCALES], {}, onLine);
+    const rebaseEnv = { env: { ...process.env, GIT_EDITOR: 'true' } };
+    if ((await git(['rebase', '--continue'], rebaseEnv, onLine)) !== 0) {
+      await git(['rebase', '--abort'], {}, onLine);
       return fail(onLine, 'rebase --continue');
     }
   }
@@ -226,6 +244,9 @@ export async function effectiveClientId() {
   return { clientId: await readClientId(DEFAULT_CLIENT_ID_FILE), isDefault: true };
 }
 
+/** Google OAuth client ids are `<digits>-<token>.apps.googleusercontent.com`. */
+export const isGoogleClientId = (id) => /^[A-Za-z0-9-]+\.apps\.googleusercontent\.com$/.test(id);
+
 /**
  * Derive the reverse-DNS redirect scheme from a Google client id — mirrors
  * `googleAuth/reverseDnsRedirect.ts` so the registered scheme matches the auth
@@ -250,35 +271,31 @@ async function injectClientConfig(onLine) {
   const { clientId, isDefault } = await effectiveClientId();
   if (!clientId) {
     onLine('==> No Google client id (default-client-id.txt empty + no override) — building WITHOUT Drive.');
-    return;
+    return 0;
   }
-  await writeFile(join(APP_DIR, '.env.local'), `${CLIENT_ID_ENV_KEY}=${clientId}\n`);
+  if (!isGoogleClientId(clientId)) return fail(onLine, `not a Google client id: ${clientId}`);
 
-  const scheme = deriveReverseDnsScheme(clientId);
-  const confPath = join(APP_DIR, 'src-tauri', 'tauri.conf.json');
-  const conf = JSON.parse(await readFile(confPath, 'utf8'));
-  const deepLink = conf.plugins['deep-link'];
-  deepLink.desktop.schemes = ['readest', scheme];
-  deepLink.mobile = (deepLink.mobile ?? []).filter(
-    (entry) => !(entry.scheme ?? []).some((s) => s.startsWith(REVERSE_DNS_SCHEME_PREFIX)),
-  );
-  deepLink.mobile.push({ scheme: [scheme], appLink: false });
-  await writeFile(confPath, `${JSON.stringify(conf, null, 2)}\n`);
+  try {
+    await writeFile(join(APP_DIR, '.env.local'), `${CLIENT_ID_ENV_KEY}=${clientId}\n`);
+
+    const scheme = deriveReverseDnsScheme(clientId);
+    const confPath = join(APP_DIR, 'src-tauri', 'tauri.conf.json');
+    const conf = JSON.parse(await readFile(confPath, 'utf8'));
+    const deepLink = conf.plugins['deep-link'];
+    deepLink.desktop.schemes = ['readest', scheme];
+    deepLink.mobile = (deepLink.mobile ?? []).filter(
+      (entry) => !(entry.scheme ?? []).some((s) => s.startsWith(REVERSE_DNS_SCHEME_PREFIX)),
+    );
+    deepLink.mobile.push({ scheme: [scheme], appLink: false });
+    await writeFile(confPath, `${JSON.stringify(conf, null, 2)}\n`);
+  } catch (err) {
+    return fail(onLine, `inject client config: ${err.message}`);
+  }
 
   onLine(
     `==> Injected Google client (${isDefault ? 'built-in default' : 'your override'}) + reverse-DNS scheme — Drive enabled`,
   );
-}
-
-/** Raw (unquoted) absolute pnpm path — for the Kotlin BuildTask string + the env. */
-function resolvePnpmRaw() {
-  if (!IS_WIN) return 'pnpm';
-  const candidates = [
-    join(process.env['APPDATA'] ?? '', 'npm', 'pnpm.cmd'),
-    join(process.env['ProgramFiles'] ?? '', 'nodejs', 'pnpm.cmd'),
-    join(process.env['LOCALAPPDATA'] ?? '', 'pnpm', 'pnpm.cmd'),
-  ];
-  return candidates.find((p) => p && existsSync(p)) ?? 'pnpm';
+  return 0;
 }
 
 /** Locate the Android SDK + newest installed NDK (env first, then the default dir). */
@@ -334,7 +351,7 @@ async function applyAndroidPostInitFixes(onLine, release) {
   const buildTask = join(gen, 'buildSrc', 'src', 'main', 'java', pkgPath, 'kotlin', 'BuildTask.kt');
   const kt = (await readFile(buildTask, 'utf8'))
     .split('"""pnpm"""')
-    .join(`"""${resolvePnpmRaw()}"""`)
+    .join(`"""${PNPM_RAW}"""`)
     .split('executable(executable)')
     .join('executable("cmd")')
     .split('args(args)')
@@ -381,6 +398,26 @@ async function applyAndroidPostInitFixes(onLine, release) {
     await writeFile(proguard, existingProguard + keep);
   }
 
+  // Restore Readest's custom MainActivity. `tauri android init` regenerates a vanilla
+  // `class MainActivity : TauriActivity()`, dropping the onActivityResult override that
+  // routes the folder picker's result back to the native bridge — without it "Add
+  // Directory" never resolves (the chosen folder never fills in, OK stays disabled) —
+  // plus the KeyDownInterceptor. It's committed under Readest's BASE package; read it
+  // from git HEAD, repoint its `package` line to the renamed identifier, and write it
+  // at the init-generated package path.
+  const committedMainRel = execFileSync(
+    'git',
+    ['-C', WORK_DIR, 'ls-files', 'apps/readest-app/src-tauri/gen/android/app/src/main/java/*/MainActivity.kt'],
+    { encoding: 'utf8' },
+  ).trim().split('\n')[0];
+  if (committedMainRel) {
+    const committed = execFileSync('git', ['-C', WORK_DIR, 'show', `HEAD:${committedMainRel}`], { encoding: 'utf8' });
+    const basePkg = committed.match(/^package\s+(\S+)/m)?.[1];
+    const restored = basePkg ? committed.split(basePkg).join(conf.identifier) : committed;
+    await writeFile(join(gen, 'app', 'src', 'main', 'java', pkgPath, 'MainActivity.kt'), restored);
+    onLine('==> Android: restored Readest MainActivity (folder-picker result routing + key handling)');
+  }
+
   onLine(
     `==> Applied Android post-init fixes (pnpm wrapper, FOSS flavor${release ? ', release signing + R8 keep-rules' : ''})`,
   );
@@ -413,7 +450,7 @@ export async function buildAndroidApk(onLine, release) {
   // committed HEAD version is the source of truth — restore it. Tauri's deep-link /
   // file-association auto-gen still runs against the marked sections at build time.
   const manifestRel = 'apps/readest-app/src-tauri/gen/android/app/src/main/AndroidManifest.xml';
-  if (await sh(`git checkout HEAD -- ${q(manifestRel)}`, { cwd: WORK_DIR, env }, onLine))
+  if (await git(['checkout', 'HEAD', '--', manifestRel], { cwd: WORK_DIR, env }, onLine))
     return fail(onLine, 'restore AndroidManifest.xml');
   onLine('==> Android: restored Readest manifest (MANAGE_EXTERNAL_STORAGE + file intents)');
 
@@ -450,7 +487,7 @@ export async function buildAndroidApk(onLine, release) {
 async function buildInWork(onLine, release = false) {
   onLine(`==> Build profile: ${release ? 'RELEASE (optimized, smaller)' : 'debug (faster)'}`);
   onLine('==> Init submodules');
-  if (await sh(`git submodule update --init ${SUBMODULES.join(' ')}`, {}, onLine))
+  if (await git(['submodule', 'update', '--init', ...SUBMODULES], {}, onLine))
     return fail(onLine, 'submodule init');
 
   onLine('==> Install dependencies');
@@ -462,7 +499,7 @@ async function buildInWork(onLine, release = false) {
   for (const leaf of VENDOR_LEAVES)
     if (await sh(`${PNPM} run ${leaf}`, { cwd: APP_DIR }, onLine)) return fail(onLine, `vendor ${leaf}`);
 
-  await injectClientConfig(onLine);
+  if (await injectClientConfig(onLine)) return 1;
 
   if (existsSync(ICONS_SRC)) {
     await cp(ICONS_SRC, join(APP_DIR, 'src-tauri', 'icons'), { recursive: true });
@@ -496,9 +533,9 @@ async function buildInWork(onLine, release = false) {
 /** Non-destructive-ish check: does the overlay still apply onto <ref>? */
 export async function runCheck(ref, onLine) {
   if (await ensureClone(onLine)) return 1;
-  if (await sh(`git checkout -f ${ref}`, {}, onLine)) return fail(onLine, `checkout ${ref}`);
-  await sh('git clean -fd', {}, onLine);
-  const code = await sh(`git apply --check ${q(MOD_PATCH)}`, {}, onLine);
+  if (await git(['checkout', '-f', ref], {}, onLine)) return fail(onLine, `checkout ${ref}`);
+  await git(['clean', '-fd'], {}, onLine);
+  const code = await git(['apply', '--check', MOD_PATCH], {}, onLine);
   if (code === 0) {
     onLine(`RESULT: COMPATIBLE — the mod fits Readest ${ref}.`);
     onLine('This was only a dry run: Readest was downloaded but NOT changed yet.');
@@ -515,7 +552,7 @@ export async function runCheck(ref, onLine) {
  *  (smaller, slower) artifacts for distribution; default debug (faster). */
 export async function runUpdate(ref, onLine, release = false) {
   if (await ensureClone(onLine)) return 1;
-  if (!(await capture(`git rev-parse --verify --quiet "${ref}^{commit}"`)).out)
+  if (!(await captureGit(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`])).out)
     return fail(onLine, `version '${ref}' not found`);
   if (await overlayOnto(ref, onLine)) return 1;
   return buildInWork(onLine, release);

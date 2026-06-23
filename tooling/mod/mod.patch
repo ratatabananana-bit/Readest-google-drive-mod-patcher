@@ -88,6 +88,513 @@ index 6ec11f30..8796d1af 100644
  
 -DBUS_ID=com.bilingify.readest
 +DBUS_ID=com.readestgmod.app
+diff --git a/apps/readest-app/package.json b/apps/readest-app/package.json
+index 13aab411..08f6a272 100644
+--- a/apps/readest-app/package.json
++++ b/apps/readest-app/package.json
+@@ -158,6 +158,7 @@
+     "cors": "^2.8.5",
+     "dayjs": "^1.11.13",
+     "dompurify": "^3.4.0",
++    "embla-carousel-react": "^8.6.0",
+     "fflate": "^0.8.2",
+     "foliate-js": "workspace:*",
+     "franc-min": "^6.2.0",
+diff --git a/apps/readest-app/public/locales/ar/translation.json b/apps/readest-app/public/locales/ar/translation.json
+index 3712c4b1..44532daf 100644
+--- a/apps/readest-app/public/locales/ar/translation.json
++++ b/apps/readest-app/public/locales/ar/translation.json
+@@ -1912,5 +1912,9 @@
+   "Failed to save the image": "فشل حفظ الصورة",
+   "Share Image": "مشاركة الصورة",
+   "Save Image": "حفظ الصورة",
+-  "Image saved to gallery": "تم حفظ الصورة في المعرض"
++  "Image saved to gallery": "تم حفظ الصورة في المعرض",
++  "Recently read": "المقروءة مؤخرًا",
++  "Hide from recent": "إخفاء من الأخيرة",
++  "Hidden until you open it again": "مخفي حتى تفتحه مرة أخرى",
++  "Show recently read": "إظهار المقروءة مؤخرًا"
+ }
+diff --git a/apps/readest-app/public/locales/bn/translation.json b/apps/readest-app/public/locales/bn/translation.json
+index a6b67650..557501be 100644
+--- a/apps/readest-app/public/locales/bn/translation.json
++++ b/apps/readest-app/public/locales/bn/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "ছবি সংরক্ষণ করা যায়নি",
+   "Share Image": "ছবি শেয়ার করুন",
+   "Save Image": "ছবি সংরক্ষণ করুন",
+-  "Image saved to gallery": "ছবি গ্যালারিতে সংরক্ষিত হয়েছে"
++  "Image saved to gallery": "ছবি গ্যালারিতে সংরক্ষিত হয়েছে",
++  "Recently read": "সম্প্রতি পঠিত",
++  "Hide from recent": "সাম্প্রতিক থেকে লুকান",
++  "Hidden until you open it again": "আবার না খোলা পর্যন্ত লুকানো থাকবে",
++  "Show recently read": "সম্প্রতি পঠিত দেখান"
+ }
+diff --git a/apps/readest-app/public/locales/bo/translation.json b/apps/readest-app/public/locales/bo/translation.json
+index 6fb44f00..434d41d0 100644
+--- a/apps/readest-app/public/locales/bo/translation.json
++++ b/apps/readest-app/public/locales/bo/translation.json
+@@ -1747,5 +1747,9 @@
+   "Failed to save the image": "པར་རིས་ཉར་ཚགས་བྱས་མ་ཐུབ",
+   "Share Image": "པར་རིས་མཉམ་སྤྱོད།",
+   "Save Image": "པར་རིས་ཉར་ཚགས།",
+-  "Image saved to gallery": "པར་རིས་པར་མཛོད་ནང་ཉར་ཚགས་བྱས་ཟིན"
++  "Image saved to gallery": "པར་རིས་པར་མཛོད་ནང་ཉར་ཚགས་བྱས་ཟིན",
++  "Recently read": "ཉེ་ཆར་ཀློག་པ",
++  "Hide from recent": "ཉེ་ཆར་ཁྲོད་ནས་སྦ་བ",
++  "Hidden until you open it again": "ཁྱེད་ཀྱིས་སླར་ཡང་ཁ་ཕྱེ་བར་དུ་སྦས་ནས་ཡོད",
++  "Show recently read": "ཉེ་ཆར་ཀློག་པ་སྟོན་པ"
+ }
+diff --git a/apps/readest-app/public/locales/de/translation.json b/apps/readest-app/public/locales/de/translation.json
+index fe8dec53..3e10247b 100644
+--- a/apps/readest-app/public/locales/de/translation.json
++++ b/apps/readest-app/public/locales/de/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "Bild konnte nicht gespeichert werden",
+   "Share Image": "Bild teilen",
+   "Save Image": "Bild speichern",
+-  "Image saved to gallery": "Bild in der Galerie gespeichert"
++  "Image saved to gallery": "Bild in der Galerie gespeichert",
++  "Recently read": "Zuletzt gelesen",
++  "Hide from recent": "Aus „Zuletzt gelesen“ ausblenden",
++  "Hidden until you open it again": "Ausgeblendet, bis du es wieder öffnest",
++  "Show recently read": "Zuletzt gelesen anzeigen"
+ }
+diff --git a/apps/readest-app/public/locales/el/translation.json b/apps/readest-app/public/locales/el/translation.json
+index 30f856c3..3f5c3681 100644
+--- a/apps/readest-app/public/locales/el/translation.json
++++ b/apps/readest-app/public/locales/el/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "Αποτυχία αποθήκευσης της εικόνας",
+   "Share Image": "Κοινή χρήση εικόνας",
+   "Save Image": "Αποθήκευση εικόνας",
+-  "Image saved to gallery": "Η εικόνα αποθηκεύτηκε στη συλλογή"
++  "Image saved to gallery": "Η εικόνα αποθηκεύτηκε στη συλλογή",
++  "Recently read": "Πρόσφατα αναγνωσμένα",
++  "Hide from recent": "Απόκρυψη από τα πρόσφατα",
++  "Hidden until you open it again": "Κρυφό μέχρι να το ανοίξετε ξανά",
++  "Show recently read": "Εμφάνιση πρόσφατα αναγνωσμένων"
+ }
+diff --git a/apps/readest-app/public/locales/es/translation.json b/apps/readest-app/public/locales/es/translation.json
+index 123a0196..be9c7d69 100644
+--- a/apps/readest-app/public/locales/es/translation.json
++++ b/apps/readest-app/public/locales/es/translation.json
+@@ -1813,5 +1813,9 @@
+   "Failed to save the image": "No se pudo guardar la imagen",
+   "Share Image": "Compartir imagen",
+   "Save Image": "Guardar imagen",
+-  "Image saved to gallery": "Imagen guardada en la galería"
++  "Image saved to gallery": "Imagen guardada en la galería",
++  "Recently read": "Leídos recientemente",
++  "Hide from recent": "Ocultar de recientes",
++  "Hidden until you open it again": "Oculto hasta que vuelvas a abrirlo",
++  "Show recently read": "Mostrar leídos recientemente"
+ }
+diff --git a/apps/readest-app/public/locales/fa/translation.json b/apps/readest-app/public/locales/fa/translation.json
+index 8e4b44c2..dcf94611 100644
+--- a/apps/readest-app/public/locales/fa/translation.json
++++ b/apps/readest-app/public/locales/fa/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "ذخیره تصویر ناموفق بود",
+   "Share Image": "اشتراک‌گذاری تصویر",
+   "Save Image": "ذخیره تصویر",
+-  "Image saved to gallery": "تصویر در گالری ذخیره شد"
++  "Image saved to gallery": "تصویر در گالری ذخیره شد",
++  "Recently read": "اخیراً خوانده‌شده",
++  "Hide from recent": "پنهان کردن از اخیرها",
++  "Hidden until you open it again": "تا زمانی که دوباره بازش کنید پنهان می‌ماند",
++  "Show recently read": "نمایش موارد اخیراً خوانده‌شده"
+ }
+diff --git a/apps/readest-app/public/locales/fr/translation.json b/apps/readest-app/public/locales/fr/translation.json
+index 3a42c945..579130e7 100644
+--- a/apps/readest-app/public/locales/fr/translation.json
++++ b/apps/readest-app/public/locales/fr/translation.json
+@@ -1813,5 +1813,9 @@
+   "Failed to save the image": "Échec de l'enregistrement de l'image",
+   "Share Image": "Partager l'image",
+   "Save Image": "Enregistrer l'image",
+-  "Image saved to gallery": "Image enregistrée dans la galerie"
++  "Image saved to gallery": "Image enregistrée dans la galerie",
++  "Recently read": "Lus récemment",
++  "Hide from recent": "Masquer des récents",
++  "Hidden until you open it again": "Masqué jusqu’à ce que vous le rouvriez",
++  "Show recently read": "Afficher les lus récemment"
+ }
+diff --git a/apps/readest-app/public/locales/he/translation.json b/apps/readest-app/public/locales/he/translation.json
+index d84068f5..ba37542d 100644
+--- a/apps/readest-app/public/locales/he/translation.json
++++ b/apps/readest-app/public/locales/he/translation.json
+@@ -1813,5 +1813,9 @@
+   "Failed to save the image": "שמירת התמונה נכשלה",
+   "Share Image": "שיתוף התמונה",
+   "Save Image": "שמירת התמונה",
+-  "Image saved to gallery": "התמונה נשמרה בגלריה"
++  "Image saved to gallery": "התמונה נשמרה בגלריה",
++  "Recently read": "נקראו לאחרונה",
++  "Hide from recent": "הסתר מהאחרונים",
++  "Hidden until you open it again": "מוסתר עד שתפתח שוב",
++  "Show recently read": "הצג נקראו לאחרונה"
+ }
+diff --git a/apps/readest-app/public/locales/hi/translation.json b/apps/readest-app/public/locales/hi/translation.json
+index dfd0e021..91b66664 100644
+--- a/apps/readest-app/public/locales/hi/translation.json
++++ b/apps/readest-app/public/locales/hi/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "छवि सहेजने में विफल",
+   "Share Image": "छवि साझा करें",
+   "Save Image": "छवि सहेजें",
+-  "Image saved to gallery": "छवि गैलरी में सहेजी गई"
++  "Image saved to gallery": "छवि गैलरी में सहेजी गई",
++  "Recently read": "हाल ही में पढ़े गए",
++  "Hide from recent": "हाल के से छिपाएँ",
++  "Hidden until you open it again": "जब तक आप इसे दोबारा नहीं खोलते, यह छिपा रहेगा",
++  "Show recently read": "हाल ही में पढ़े गए दिखाएँ"
+ }
+diff --git a/apps/readest-app/public/locales/hu/translation.json b/apps/readest-app/public/locales/hu/translation.json
+index af143ab9..19a31981 100644
+--- a/apps/readest-app/public/locales/hu/translation.json
++++ b/apps/readest-app/public/locales/hu/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "Nem sikerült menteni a képet",
+   "Share Image": "Kép megosztása",
+   "Save Image": "Kép mentése",
+-  "Image saved to gallery": "A kép elmentve a galériába"
++  "Image saved to gallery": "A kép elmentve a galériába",
++  "Recently read": "Nemrég olvasott",
++  "Hide from recent": "Elrejtés a legutóbbiak közül",
++  "Hidden until you open it again": "Rejtve marad, amíg újra meg nem nyitod",
++  "Show recently read": "Nemrég olvasottak megjelenítése"
+ }
+diff --git a/apps/readest-app/public/locales/id/translation.json b/apps/readest-app/public/locales/id/translation.json
+index e661d844..23c44667 100644
+--- a/apps/readest-app/public/locales/id/translation.json
++++ b/apps/readest-app/public/locales/id/translation.json
+@@ -1747,5 +1747,9 @@
+   "Failed to save the image": "Gagal menyimpan gambar",
+   "Share Image": "Bagikan Gambar",
+   "Save Image": "Simpan Gambar",
+-  "Image saved to gallery": "Gambar disimpan ke galeri"
++  "Image saved to gallery": "Gambar disimpan ke galeri",
++  "Recently read": "Baru dibaca",
++  "Hide from recent": "Sembunyikan dari terbaru",
++  "Hidden until you open it again": "Disembunyikan sampai Anda membukanya lagi",
++  "Show recently read": "Tampilkan baru dibaca"
+ }
+diff --git a/apps/readest-app/public/locales/it/translation.json b/apps/readest-app/public/locales/it/translation.json
+index 733e57dc..de092afb 100644
+--- a/apps/readest-app/public/locales/it/translation.json
++++ b/apps/readest-app/public/locales/it/translation.json
+@@ -1813,5 +1813,9 @@
+   "Failed to save the image": "Impossibile salvare l'immagine",
+   "Share Image": "Condividi immagine",
+   "Save Image": "Salva immagine",
+-  "Image saved to gallery": "Immagine salvata nella galleria"
++  "Image saved to gallery": "Immagine salvata nella galleria",
++  "Recently read": "Letti di recente",
++  "Hide from recent": "Nascondi dai recenti",
++  "Hidden until you open it again": "Nascosto finché non lo riapri",
++  "Show recently read": "Mostra letti di recente"
+ }
+diff --git a/apps/readest-app/public/locales/ja/translation.json b/apps/readest-app/public/locales/ja/translation.json
+index cc5e377b..3ca5baeb 100644
+--- a/apps/readest-app/public/locales/ja/translation.json
++++ b/apps/readest-app/public/locales/ja/translation.json
+@@ -1747,5 +1747,9 @@
+   "Failed to save the image": "画像の保存に失敗しました",
+   "Share Image": "画像を共有",
+   "Save Image": "画像を保存",
+-  "Image saved to gallery": "画像をギャラリーに保存しました"
++  "Image saved to gallery": "画像をギャラリーに保存しました",
++  "Recently read": "最近読んだ本",
++  "Hide from recent": "最近の一覧から非表示",
++  "Hidden until you open it again": "もう一度開くまで非表示にします",
++  "Show recently read": "最近読んだ本を表示"
+ }
+diff --git a/apps/readest-app/public/locales/ko/translation.json b/apps/readest-app/public/locales/ko/translation.json
+index 8a07f751..c5b29382 100644
+--- a/apps/readest-app/public/locales/ko/translation.json
++++ b/apps/readest-app/public/locales/ko/translation.json
+@@ -1747,5 +1747,9 @@
+   "Failed to save the image": "이미지를 저장하지 못했습니다",
+   "Share Image": "이미지 공유",
+   "Save Image": "이미지 저장",
+-  "Image saved to gallery": "이미지를 갤러리에 저장했습니다"
++  "Image saved to gallery": "이미지를 갤러리에 저장했습니다",
++  "Recently read": "최근 읽은 책",
++  "Hide from recent": "최근 목록에서 숨기기",
++  "Hidden until you open it again": "다시 열 때까지 숨겨집니다",
++  "Show recently read": "최근 읽은 책 표시"
+ }
+diff --git a/apps/readest-app/public/locales/ms/translation.json b/apps/readest-app/public/locales/ms/translation.json
+index 7322cba4..26208f5a 100644
+--- a/apps/readest-app/public/locales/ms/translation.json
++++ b/apps/readest-app/public/locales/ms/translation.json
+@@ -1747,5 +1747,9 @@
+   "Failed to save the image": "Gagal menyimpan imej",
+   "Share Image": "Kongsi Imej",
+   "Save Image": "Simpan Imej",
+-  "Image saved to gallery": "Imej disimpan ke galeri"
++  "Image saved to gallery": "Imej disimpan ke galeri",
++  "Recently read": "Baru dibaca",
++  "Hide from recent": "Sembunyikan daripada terbaru",
++  "Hidden until you open it again": "Disembunyikan sehingga anda membukanya semula",
++  "Show recently read": "Tunjukkan baru dibaca"
+ }
+diff --git a/apps/readest-app/public/locales/nl/translation.json b/apps/readest-app/public/locales/nl/translation.json
+index 41d70510..5f223221 100644
+--- a/apps/readest-app/public/locales/nl/translation.json
++++ b/apps/readest-app/public/locales/nl/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "Kan de afbeelding niet opslaan",
+   "Share Image": "Afbeelding delen",
+   "Save Image": "Afbeelding opslaan",
+-  "Image saved to gallery": "Afbeelding opgeslagen in de galerij"
++  "Image saved to gallery": "Afbeelding opgeslagen in de galerij",
++  "Recently read": "Onlangs gelezen",
++  "Hide from recent": "Verbergen uit recent",
++  "Hidden until you open it again": "Verborgen totdat je het opnieuw opent",
++  "Show recently read": "Onlangs gelezen tonen"
+ }
+diff --git a/apps/readest-app/public/locales/pl/translation.json b/apps/readest-app/public/locales/pl/translation.json
+index 6f415a81..cf48296f 100644
+--- a/apps/readest-app/public/locales/pl/translation.json
++++ b/apps/readest-app/public/locales/pl/translation.json
+@@ -1846,5 +1846,9 @@
+   "Failed to save the image": "Nie udało się zapisać obrazu",
+   "Share Image": "Udostępnij obraz",
+   "Save Image": "Zapisz obraz",
+-  "Image saved to gallery": "Obraz zapisano w galerii"
++  "Image saved to gallery": "Obraz zapisano w galerii",
++  "Recently read": "Ostatnio czytane",
++  "Hide from recent": "Ukryj z ostatnich",
++  "Hidden until you open it again": "Ukryte, dopóki nie otworzysz ponownie",
++  "Show recently read": "Pokaż ostatnio czytane"
+ }
+diff --git a/apps/readest-app/public/locales/pt-BR/translation.json b/apps/readest-app/public/locales/pt-BR/translation.json
+index c2e0099a..039f555a 100644
+--- a/apps/readest-app/public/locales/pt-BR/translation.json
++++ b/apps/readest-app/public/locales/pt-BR/translation.json
+@@ -1813,5 +1813,9 @@
+   "Failed to save the image": "Falha ao salvar a imagem",
+   "Share Image": "Compartilhar imagem",
+   "Save Image": "Salvar imagem",
+-  "Image saved to gallery": "Imagem salva na galeria"
++  "Image saved to gallery": "Imagem salva na galeria",
++  "Recently read": "Lidos recentemente",
++  "Hide from recent": "Ocultar dos recentes",
++  "Hidden until you open it again": "Oculto até você abrir novamente",
++  "Show recently read": "Mostrar lidos recentemente"
+ }
+diff --git a/apps/readest-app/public/locales/pt/translation.json b/apps/readest-app/public/locales/pt/translation.json
+index af410932..3f318438 100644
+--- a/apps/readest-app/public/locales/pt/translation.json
++++ b/apps/readest-app/public/locales/pt/translation.json
+@@ -1813,5 +1813,9 @@
+   "Failed to save the image": "Falha ao salvar a imagem",
+   "Share Image": "Partilhar imagem",
+   "Save Image": "Salvar imagem",
+-  "Image saved to gallery": "Imagem guardada na galeria"
++  "Image saved to gallery": "Imagem guardada na galeria",
++  "Recently read": "Lidos recentemente",
++  "Hide from recent": "Ocultar dos recentes",
++  "Hidden until you open it again": "Oculto até abrir novamente",
++  "Show recently read": "Mostrar lidos recentemente"
+ }
+diff --git a/apps/readest-app/public/locales/ro/translation.json b/apps/readest-app/public/locales/ro/translation.json
+index 4267eccd..79cff9ae 100644
+--- a/apps/readest-app/public/locales/ro/translation.json
++++ b/apps/readest-app/public/locales/ro/translation.json
+@@ -1813,5 +1813,9 @@
+   "Failed to save the image": "Salvarea imaginii a eșuat",
+   "Share Image": "Partajează imaginea",
+   "Save Image": "Salvează imaginea",
+-  "Image saved to gallery": "Imagine salvată în galerie"
++  "Image saved to gallery": "Imagine salvată în galerie",
++  "Recently read": "Citite recent",
++  "Hide from recent": "Ascunde din recente",
++  "Hidden until you open it again": "Ascunsă până o redeschizi",
++  "Show recently read": "Arată citite recent"
+ }
+diff --git a/apps/readest-app/public/locales/ru/translation.json b/apps/readest-app/public/locales/ru/translation.json
+index 4c575fe8..56b3ca80 100644
+--- a/apps/readest-app/public/locales/ru/translation.json
++++ b/apps/readest-app/public/locales/ru/translation.json
+@@ -1846,5 +1846,9 @@
+   "Failed to save the image": "Не удалось сохранить изображение",
+   "Share Image": "Поделиться изображением",
+   "Save Image": "Сохранить изображение",
+-  "Image saved to gallery": "Изображение сохранено в галерее"
++  "Image saved to gallery": "Изображение сохранено в галерее",
++  "Recently read": "Недавно прочитанные",
++  "Hide from recent": "Скрыть из недавних",
++  "Hidden until you open it again": "Скрыто, пока вы не откроете снова",
++  "Show recently read": "Показывать недавно прочитанные"
+ }
+diff --git a/apps/readest-app/public/locales/si/translation.json b/apps/readest-app/public/locales/si/translation.json
+index 568cd4e5..55e4044e 100644
+--- a/apps/readest-app/public/locales/si/translation.json
++++ b/apps/readest-app/public/locales/si/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "රූපය සුරැකීමට අසමත් විය",
+   "Share Image": "රූපය බෙදාගන්න",
+   "Save Image": "රූපය සුරකින්න",
+-  "Image saved to gallery": "රූපය ගැලරියට සුරැකිණි"
++  "Image saved to gallery": "රූපය ගැලරියට සුරැකිණි",
++  "Recently read": "මෑතකදී කියවූ",
++  "Hide from recent": "මෑත ලැයිස්තුවෙන් සඟවන්න",
++  "Hidden until you open it again": "ඔබ නැවත විවෘත කරන තුරු සඟවා ඇත",
++  "Show recently read": "මෑතකදී කියවූ ඒවා පෙන්වන්න"
+ }
+diff --git a/apps/readest-app/public/locales/sl/translation.json b/apps/readest-app/public/locales/sl/translation.json
+index 63ad38bf..ef77cce5 100644
+--- a/apps/readest-app/public/locales/sl/translation.json
++++ b/apps/readest-app/public/locales/sl/translation.json
+@@ -1846,5 +1846,9 @@
+   "Failed to save the image": "Slike ni bilo mogoče shraniti",
+   "Share Image": "Deli sliko",
+   "Save Image": "Shrani sliko",
+-  "Image saved to gallery": "Slika je shranjena v galerijo"
++  "Image saved to gallery": "Slika je shranjena v galerijo",
++  "Recently read": "Nedavno brano",
++  "Hide from recent": "Skrij iz nedavnih",
++  "Hidden until you open it again": "Skrito, dokler ga znova ne odprete",
++  "Show recently read": "Pokaži nedavno brano"
+ }
+diff --git a/apps/readest-app/public/locales/sv/translation.json b/apps/readest-app/public/locales/sv/translation.json
+index a42bb557..1d6c8aa7 100644
+--- a/apps/readest-app/public/locales/sv/translation.json
++++ b/apps/readest-app/public/locales/sv/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "Det gick inte att spara bilden",
+   "Share Image": "Dela bild",
+   "Save Image": "Spara bild",
+-  "Image saved to gallery": "Bilden har sparats i galleriet"
++  "Image saved to gallery": "Bilden har sparats i galleriet",
++  "Recently read": "Nyligen lästa",
++  "Hide from recent": "Dölj från senaste",
++  "Hidden until you open it again": "Dold tills du öppnar den igen",
++  "Show recently read": "Visa nyligen lästa"
+ }
+diff --git a/apps/readest-app/public/locales/ta/translation.json b/apps/readest-app/public/locales/ta/translation.json
+index a2fa6bad..31b54270 100644
+--- a/apps/readest-app/public/locales/ta/translation.json
++++ b/apps/readest-app/public/locales/ta/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "படத்தைச் சேமிக்க முடியவில்லை",
+   "Share Image": "படத்தைப் பகிர்",
+   "Save Image": "படத்தைச் சேமி",
+-  "Image saved to gallery": "படம் கேலரியில் சேமிக்கப்பட்டது"
++  "Image saved to gallery": "படம் கேலரியில் சேமிக்கப்பட்டது",
++  "Recently read": "சமீபத்தில் படித்தவை",
++  "Hide from recent": "சமீபத்தியவற்றிலிருந்து மறை",
++  "Hidden until you open it again": "மீண்டும் திறக்கும் வரை மறைக்கப்படும்",
++  "Show recently read": "சமீபத்தில் படித்தவற்றைக் காட்டு"
+ }
+diff --git a/apps/readest-app/public/locales/th/translation.json b/apps/readest-app/public/locales/th/translation.json
+index 2a4c47a0..cb108608 100644
+--- a/apps/readest-app/public/locales/th/translation.json
++++ b/apps/readest-app/public/locales/th/translation.json
+@@ -1747,5 +1747,9 @@
+   "Failed to save the image": "ไม่สามารถบันทึกรูปภาพได้",
+   "Share Image": "แชร์รูปภาพ",
+   "Save Image": "บันทึกรูปภาพ",
+-  "Image saved to gallery": "บันทึกรูปภาพไปยังแกลเลอรีแล้ว"
++  "Image saved to gallery": "บันทึกรูปภาพไปยังแกลเลอรีแล้ว",
++  "Recently read": "อ่านล่าสุด",
++  "Hide from recent": "ซ่อนจากรายการล่าสุด",
++  "Hidden until you open it again": "ซ่อนไว้จนกว่าคุณจะเปิดอีกครั้ง",
++  "Show recently read": "แสดงรายการอ่านล่าสุด"
+ }
+diff --git a/apps/readest-app/public/locales/tr/translation.json b/apps/readest-app/public/locales/tr/translation.json
+index 24ed739a..dbdbb5ac 100644
+--- a/apps/readest-app/public/locales/tr/translation.json
++++ b/apps/readest-app/public/locales/tr/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "Görsel kaydedilemedi",
+   "Share Image": "Görseli Paylaş",
+   "Save Image": "Görseli Kaydet",
+-  "Image saved to gallery": "Görsel galeriye kaydedildi"
++  "Image saved to gallery": "Görsel galeriye kaydedildi",
++  "Recently read": "Son okunanlar",
++  "Hide from recent": "Sonlardan gizle",
++  "Hidden until you open it again": "Yeniden açana kadar gizli kalır",
++  "Show recently read": "Son okunanları göster"
+ }
+diff --git a/apps/readest-app/public/locales/uk/translation.json b/apps/readest-app/public/locales/uk/translation.json
+index a5593bef..4a944244 100644
+--- a/apps/readest-app/public/locales/uk/translation.json
++++ b/apps/readest-app/public/locales/uk/translation.json
+@@ -1846,5 +1846,9 @@
+   "Failed to save the image": "Не вдалося зберегти зображення",
+   "Share Image": "Поділитися зображенням",
+   "Save Image": "Зберегти зображення",
+-  "Image saved to gallery": "Зображення збережено в галереї"
++  "Image saved to gallery": "Зображення збережено в галереї",
++  "Recently read": "Нещодавно прочитані",
++  "Hide from recent": "Сховати з нещодавніх",
++  "Hidden until you open it again": "Сховано, доки ви не відкриєте знову",
++  "Show recently read": "Показувати нещодавно прочитані"
+ }
+diff --git a/apps/readest-app/public/locales/uz/translation.json b/apps/readest-app/public/locales/uz/translation.json
+index 51aafffe..c6c72b03 100644
+--- a/apps/readest-app/public/locales/uz/translation.json
++++ b/apps/readest-app/public/locales/uz/translation.json
+@@ -1780,5 +1780,9 @@
+   "Failed to save the image": "Rasmni saqlab bo'lmadi",
+   "Share Image": "Rasmni ulashish",
+   "Save Image": "Rasmni saqlash",
+-  "Image saved to gallery": "Rasm galereyaga saqlandi"
++  "Image saved to gallery": "Rasm galereyaga saqlandi",
++  "Recently read": "Yaqinda o‘qilganlar",
++  "Hide from recent": "Yaqindagilardan yashirish",
++  "Hidden until you open it again": "Qayta ochmaguningizcha yashirin qoladi",
++  "Show recently read": "Yaqinda o‘qilganlarni ko‘rsatish"
+ }
+diff --git a/apps/readest-app/public/locales/vi/translation.json b/apps/readest-app/public/locales/vi/translation.json
+index 692a435b..0a7d53be 100644
+--- a/apps/readest-app/public/locales/vi/translation.json
++++ b/apps/readest-app/public/locales/vi/translation.json
+@@ -1747,5 +1747,9 @@
+   "Failed to save the image": "Không thể lưu hình ảnh",
+   "Share Image": "Chia sẻ hình ảnh",
+   "Save Image": "Lưu hình ảnh",
+-  "Image saved to gallery": "Đã lưu hình ảnh vào thư viện"
++  "Image saved to gallery": "Đã lưu hình ảnh vào thư viện",
++  "Recently read": "Đã đọc gần đây",
++  "Hide from recent": "Ẩn khỏi gần đây",
++  "Hidden until you open it again": "Ẩn cho đến khi bạn mở lại",
++  "Show recently read": "Hiển thị đã đọc gần đây"
+ }
+diff --git a/apps/readest-app/public/locales/zh-CN/translation.json b/apps/readest-app/public/locales/zh-CN/translation.json
+index 6d750507..0ae32a74 100644
+--- a/apps/readest-app/public/locales/zh-CN/translation.json
++++ b/apps/readest-app/public/locales/zh-CN/translation.json
+@@ -1747,5 +1747,9 @@
+   "Failed to save the image": "图片保存失败",
+   "Share Image": "分享图片",
+   "Save Image": "保存图片",
+-  "Image saved to gallery": "图片已保存到相册"
++  "Image saved to gallery": "图片已保存到相册",
++  "Recently read": "最近阅读",
++  "Hide from recent": "从最近中隐藏",
++  "Hidden until you open it again": "隐藏，直到你再次打开",
++  "Show recently read": "显示最近阅读"
+ }
+diff --git a/apps/readest-app/public/locales/zh-TW/translation.json b/apps/readest-app/public/locales/zh-TW/translation.json
+index 8cbbf1e3..74864927 100644
+--- a/apps/readest-app/public/locales/zh-TW/translation.json
++++ b/apps/readest-app/public/locales/zh-TW/translation.json
+@@ -1747,5 +1747,9 @@
+   "Failed to save the image": "圖片儲存失敗",
+   "Share Image": "分享圖片",
+   "Save Image": "儲存圖片",
+-  "Image saved to gallery": "圖片已儲存至相簿"
++  "Image saved to gallery": "圖片已儲存至相簿",
++  "Recently read": "最近閱讀",
++  "Hide from recent": "從最近項目中隱藏",
++  "Hidden until you open it again": "隱藏，直到你再次開啟",
++  "Show recently read": "顯示最近閱讀"
+ }
 diff --git a/apps/readest-app/scripts/drive-smoke.ts b/apps/readest-app/scripts/drive-smoke.ts
 new file mode 100644
 index 00000000..55e9c194
@@ -646,6 +1153,116 @@ index f6264f75..4100877e 100644
        }
      },
      "updater": {
+diff --git a/apps/readest-app/src/__tests__/app/library/recent-shelf.test.ts b/apps/readest-app/src/__tests__/app/library/recent-shelf.test.ts
+new file mode 100644
+index 00000000..bd6d860f
+--- /dev/null
++++ b/apps/readest-app/src/__tests__/app/library/recent-shelf.test.ts
+@@ -0,0 +1,104 @@
++import { describe, it, expect } from 'vitest';
++import { selectRecentShelfBooks } from '../../../app/library/utils/libraryUtils';
++import { Book } from '../../../types/book';
++import { BookMetadata } from '@/libs/document';
++
++// `progress` marks a book as having been opened/read — imported-but-unread
++// books have none. The shelf is "recently read", so the mock defaults to a
++// read book; tests that exercise the unread case override progress to null.
++const createMockBook = (
++  overrides: Partial<Omit<Book, 'metadata'> & { metadata?: Partial<BookMetadata> }> = {},
++): Book => ({
++  hash: `hash-${Math.random().toString(36).slice(2, 11)}`,
++  format: 'EPUB',
++  title: 'Test Book',
++  author: 'Test Author',
++  createdAt: Date.now(),
++  updatedAt: Date.now(),
++  progress: [1, 100],
++  ...overrides,
++  metadata: { ...overrides.metadata } as BookMetadata,
++});
++
++describe('selectRecentShelfBooks', () => {
++  it('orders books by updatedAt descending (most recent first)', () => {
++    const older = createMockBook({ hash: 'older', updatedAt: 1000 });
++    const newer = createMockBook({ hash: 'newer', updatedAt: 3000 });
++    const middle = createMockBook({ hash: 'middle', updatedAt: 2000 });
++
++    const result = selectRecentShelfBooks([older, newer, middle], 10);
++
++    expect(result.map((book) => book.hash)).toEqual(['newer', 'middle', 'older']);
++  });
++
++  it('excludes soft-deleted books', () => {
++    const live = createMockBook({ hash: 'live', updatedAt: 1000 });
++    const deleted = createMockBook({ hash: 'deleted', updatedAt: 2000, deletedAt: 2500 });
++
++    const result = selectRecentShelfBooks([live, deleted], 10);
++
++    expect(result.map((book) => book.hash)).toEqual(['live']);
++  });
++
++  it('slices to the requested count, keeping the most recent', () => {
++    const books = [
++      createMockBook({ hash: 'a', updatedAt: 1000 }),
++      createMockBook({ hash: 'b', updatedAt: 2000 }),
++      createMockBook({ hash: 'c', updatedAt: 3000 }),
++    ];
++
++    const result = selectRecentShelfBooks(books, 2);
++
++    expect(result.map((book) => book.hash)).toEqual(['c', 'b']);
++  });
++
++  it('returns all books when fewer than the count exist', () => {
++    const books = [createMockBook({ updatedAt: 1000 }), createMockBook({ updatedAt: 2000 })];
++
++    expect(selectRecentShelfBooks(books, 10)).toHaveLength(2);
++  });
++
++  it('returns an empty array when there are no books', () => {
++    expect(selectRecentShelfBooks([], 10)).toEqual([]);
++  });
++
++  it('excludes imported-but-unread books (no reading progress)', () => {
++    const read = createMockBook({ hash: 'read', updatedAt: 1000, progress: [3, 100] });
++    const justAdded = createMockBook({ hash: 'added', updatedAt: 9999, progress: undefined });
++
++    const result = selectRecentShelfBooks([read, justAdded], 10);
++
++    expect(result.map((book) => book.hash)).toEqual(['read']);
++  });
++
++  it('includes a book once it has been opened (progress present)', () => {
++    const opened = createMockBook({ hash: 'opened', updatedAt: 2000, progress: [1, 100] });
++
++    expect(selectRecentShelfBooks([opened], 10).map((book) => book.hash)).toEqual(['opened']);
++  });
++
++  it('hides a book whose updatedAt is at or before its hidden timestamp', () => {
++    const book = createMockBook({ hash: 'hidden', updatedAt: 2000 });
++
++    // Hidden exactly at its last-read moment, and a moment after — both hide it.
++    expect(selectRecentShelfBooks([book], 10, { hidden: 2000 })).toEqual([]);
++    expect(selectRecentShelfBooks([book], 10, { hidden: 2500 })).toEqual([]);
++  });
++
++  it('restores a hidden book once it is read again (updatedAt advances past hiddenAt)', () => {
++    const reopened = createMockBook({ hash: 'reopened', updatedAt: 3000 });
++
++    const result = selectRecentShelfBooks([reopened], 10, { reopened: 2000 });
++
++    expect(result.map((book) => book.hash)).toEqual(['reopened']);
++  });
++
++  it('only applies a hidden timestamp to its own book', () => {
++    const hidden = createMockBook({ hash: 'hidden', updatedAt: 1000 });
++    const other = createMockBook({ hash: 'other', updatedAt: 2000 });
++
++    const result = selectRecentShelfBooks([hidden, other], 10, { hidden: 5000 });
++
++    expect(result.map((book) => book.hash)).toEqual(['other']);
++  });
++});
 diff --git a/apps/readest-app/src/__tests__/cloudprovider/driveRest.test.ts b/apps/readest-app/src/__tests__/cloudprovider/driveRest.test.ts
 new file mode 100644
 index 00000000..3df677bb
@@ -4117,6 +4734,148 @@ index 536a6557..6a757247 100644
                        navigateToLogin(router);
                        return;
                      }
+diff --git a/apps/readest-app/src/app/library/components/Bookshelf.tsx b/apps/readest-app/src/app/library/components/Bookshelf.tsx
+index 33396bf6..b1c363cb 100644
+--- a/apps/readest-app/src/app/library/components/Bookshelf.tsx
++++ b/apps/readest-app/src/app/library/components/Bookshelf.tsx
+@@ -43,6 +43,7 @@ import {
+   compareSortValues,
+   resolveEffectivePrimarySort,
+   resolveEffectiveSecondarySort,
++  selectRecentShelfBooks,
+   withReadingStatus,
+ } from '../utils/libraryUtils';
+ import { eventDispatcher } from '@/utils/event';
+@@ -55,6 +56,7 @@ import Alert from '@/components/Alert';
+ import Spinner from '@/components/Spinner';
+ import ModalPortal from '@/components/ModalPortal';
+ import BookshelfItem, { generateBookshelfItems } from './BookshelfItem';
++import RecentShelf, { RECENT_SHELF_BOOK_COUNT } from './RecentShelf';
+ import SelectModeActions from './SelectModeActions';
+ import ShareBookDialog from './ShareBookDialog';
+ import { useAuth } from '@/context/AuthContext';
+@@ -89,6 +91,13 @@ interface BookshelfProps {
+ type BookshelfListContext = {
+   autoColumns: boolean;
+   fixedColumns: number;
++  /**
++   * The recently-read shelf, rendered in the Virtuoso header so it scrolls with
++   * the shelf content (not sticky). `null` when the shelf is hidden. Memoized
++   * upstream so its identity is stable across renders — Virtuoso forwards the
++   * latest context to the header without resetting the scroller.
++   */
++  recentShelfHeader: React.ReactNode;
+ };
+ 
+ const BOOKSHELF_GRID_CLASSES =
+@@ -127,12 +136,18 @@ const BookshelfLinearList: Components['List'] = React.forwardRef<HTMLDivElement,
+ );
+ BookshelfLinearList.displayName = 'BookshelfLinearList';
+ 
++const BookshelfHeader = ({ context }: { context?: BookshelfListContext }) => (
++  <>{context?.recentShelfHeader ?? null}</>
++);
++
+ const GRID_VIRTUOSO_COMPONENTS: GridComponents<BookshelfListContext> = {
+   List: BookshelfGridList,
++  Header: BookshelfHeader,
+   Footer: () => <div style={{ height: 34 }} />,
+ };
+-const LIST_VIRTUOSO_COMPONENTS: Components = {
++const LIST_VIRTUOSO_COMPONENTS: Components<unknown, BookshelfListContext> = {
+   List: BookshelfLinearList,
++  Header: BookshelfHeader,
+   Footer: () => <div style={{ height: 34 }} />,
+ };
+ 
+@@ -361,14 +376,25 @@ const Bookshelf: React.FC<BookshelfProps> = ({
+     [toggleSelectedBook],
+   );
+ 
++  const openBooks = useCallback(
++    (hashes: string[]) => {
++      if (hashes.length === 0) return;
++      if (appService?.hasWindow && settings.openBookInNewWindow) {
++        showReaderWindow(appService, hashes);
++      } else {
++        setTimeout(() => setLoading(true), 200);
++        navigateToReader(router, hashes);
++      }
++    },
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++    [appService, settings.openBookInNewWindow, router],
++  );
++
++  const openRecentBook = useCallback((book: Book) => openBooks([book.hash]), [openBooks]);
++
+   const openSelectedBooks = () => {
+     handleSetSelectMode(false);
+-    if (appService?.hasWindow && settings.openBookInNewWindow) {
+-      showReaderWindow(appService, getSelectedBooks());
+-    } else {
+-      setTimeout(() => setLoading(true), 200);
+-      navigateToReader(router, getSelectedBooks());
+-    }
++    openBooks(getSelectedBooks());
+   };
+ 
+   const openBookDetails = () => {
+@@ -662,12 +688,41 @@ const Bookshelf: React.FC<BookshelfProps> = ({
+   // last book; list mode doesn't have an import tile.
+   const gridTotalCount = hasItems ? sortedBookshelfItems.length + 1 : 0;
+ 
++  // Recently-read row: a flat recency slice of the whole library, independent
++  // of the main shelf's sort/grouping. Built from `libraryBooks` (not the
++  // sorted/filtered items) so it stays last-read order regardless of the view.
++  const recentBooks = useMemo(
++    () =>
++      selectRecentShelfBooks(
++        libraryBooks,
++        RECENT_SHELF_BOOK_COUNT,
++        settings.libraryRecentShelfHiddenAt,
++      ),
++    [libraryBooks, settings.libraryRecentShelfHiddenAt],
++  );
++
++  // Hidden while: turned off, searching, inside a group, selecting, or empty —
++  // the row is a top-level quick-resume strip, not part of those flows.
++  const showRecentShelf =
++    settings.libraryRecentShelfEnabled &&
++    !queryTerm &&
++    !groupId &&
++    !isSelectMode &&
++    recentBooks.length > 0;
++
++  const recentShelfHeader = useMemo(
++    () =>
++      showRecentShelf ? <RecentShelf books={recentBooks} onOpenBook={openRecentBook} /> : null,
++    [showRecentShelf, recentBooks, openRecentBook],
++  );
++
+   const listContext = useMemo<BookshelfListContext>(
+     () => ({
+       autoColumns: settings.libraryAutoColumns,
+       fixedColumns: settings.libraryColumns,
++      recentShelfHeader,
+     }),
+-    [settings.libraryAutoColumns, settings.libraryColumns],
++    [settings.libraryAutoColumns, settings.libraryColumns, recentShelfHeader],
+   );
+ 
+   const renderBookshelfItem = useCallback(
+@@ -780,10 +835,11 @@ const Bookshelf: React.FC<BookshelfProps> = ({
+           />
+         )}
+         {hasItems && !isGridMode && (
+-          <Virtuoso
++          <Virtuoso<unknown, BookshelfListContext>
+             overscan={200}
+             totalCount={sortedBookshelfItems.length}
+             components={LIST_VIRTUOSO_COMPONENTS}
++            context={listContext}
+             computeItemKey={computeItemKey}
+             itemContent={renderBookshelfItem}
+             scrollerRef={handleScrollerRef}
 diff --git a/apps/readest-app/src/app/library/components/DataSyncWindow.tsx b/apps/readest-app/src/app/library/components/DataSyncWindow.tsx
 new file mode 100644
 index 00000000..2a5f030b
@@ -4200,6 +4959,192 @@ index 00000000..2a5f030b
 +    </Dialog>
 +  );
 +};
+diff --git a/apps/readest-app/src/app/library/components/RecentShelf.tsx b/apps/readest-app/src/app/library/components/RecentShelf.tsx
+new file mode 100644
+index 00000000..90b9a3f8
+--- /dev/null
++++ b/apps/readest-app/src/app/library/components/RecentShelf.tsx
+@@ -0,0 +1,180 @@
++import clsx from 'clsx';
++import { useCallback, useEffect } from 'react';
++import useEmblaCarousel from 'embla-carousel-react';
++import { Menu, type MenuItemOptions } from '@tauri-apps/api/menu';
++import { Book } from '@/types/book';
++import { useEnv } from '@/context/EnvContext';
++import { useSettingsStore } from '@/store/settingsStore';
++import { useTranslation } from '@/hooks/useTranslation';
++import { useLongPress } from '@/hooks/useLongPress';
++import { saveSysSettings } from '@/helpers/settings';
++import { eventDispatcher } from '@/utils/event';
++import BookCover from '@/components/BookCover';
++
++/**
++ * How many recently-read books the top shelf holds. Fixed (no user option) so
++ * the row stays a compact quick-resume strip rather than a second library.
++ */
++export const RECENT_SHELF_BOOK_COUNT = 12;
++
++/** Confirmation toast lifetime when a book is hidden on a touch device (ms). */
++const HIDE_TOAST_TIMEOUT_MS = 2000;
++
++/**
++ * Each cover occupies one main-grid column-width and carries the same per-item
++ * padding, so recent covers render at the same size as the shelf below and
++ * their left edges line up. Mirror of `BOOKSHELF_GRID_CLASSES` column counts +
++ * the grid `BookshelfItem` padding in Bookshelf.tsx — keep the two in sync.
++ */
++const RECENT_SLIDE_CLASSES =
++  'shrink-0 basis-1/3 sm:basis-1/4 md:basis-1/6 xl:basis-[12.5%] 2xl:basis-1/12 ' +
++  'px-0 py-2 sm:px-4 sm:py-4';
++
++interface RecentShelfCoverProps {
++  book: Book;
++  /** Open the book. */
++  onOpen: (book: Book) => void;
++  /** Hide the book from the shelf until it is read again. */
++  onRequestHide: (book: Book) => void;
++}
++
++const RecentShelfCover: React.FC<RecentShelfCoverProps> = ({ book, onOpen, onRequestHide }) => {
++  // A swipe never opens or hides a book: useLongPress cancels its tap/long-press
++  // once the pointer moves past its threshold, which is exactly when Embla takes
++  // over the gesture as a drag (same coexistence the main shelf relies on inside
++  // its scroller). Embla additionally suppresses the post-drag synthetic click.
++  const open = useCallback(() => onOpen(book), [book, onOpen]);
++  const requestHide = useCallback(() => onRequestHide(book), [book, onRequestHide]);
++
++  const { handlers } = useLongPress(
++    {
++      onTap: open,
++      onLongPress: requestHide,
++      onContextMenu: requestHide,
++    },
++    [open, requestHide],
++  );
++
++  const handleKeyDown = (e: React.KeyboardEvent) => {
++    if (e.key === 'Enter' || e.key === ' ') {
++      e.preventDefault();
++      onOpen(book);
++    }
++    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
++      e.preventDefault();
++      onRequestHide(book);
++    }
++  };
++
++  return (
++    <div
++      className={clsx(
++        'recent-shelf-cover min-w-0 cursor-pointer select-none',
++        RECENT_SLIDE_CLASSES,
++      )}
++      role='button'
++      tabIndex={0}
++      aria-label={book.title}
++      onKeyDown={handleKeyDown}
++      {...handlers}
++    >
++      <div className='aspect-[28/41] overflow-hidden rounded'>
++        <BookCover book={book} mode='grid' coverFit='crop' imageClassName='rounded shadow-md' />
++      </div>
++      <h4 className='block overflow-hidden text-ellipsis whitespace-nowrap pt-2 text-[0.6em] text-xs font-semibold'>
++        {book.title}
++      </h4>
++    </div>
++  );
++};
++
++interface RecentShelfProps {
++  books: Book[];
++  onOpenBook: (book: Book) => void;
++}
++
++/**
++ * Recently-read shelf rendered in the bookshelf's scrollable header: a flat,
++ * recency-ordered row of covers, independent of the main shelf's sort/grouping.
++ * Drag-to-scroll with snap-to-alignment + edge rubber-band via Embla, so the
++ * row never rests on a half-cut cover. Tap opens a book; press-and-hold hides
++ * it until it is read again (see `libraryRecentShelfHiddenAt`).
++ */
++const RecentShelf: React.FC<RecentShelfProps> = ({ books, onOpenBook }) => {
++  const _ = useTranslation();
++  const { envConfig, appService } = useEnv();
++  const { settings } = useSettingsStore();
++  const [emblaRef, emblaApi] = useEmblaCarousel({
++    align: 'start',
++    containScroll: 'trimSnaps',
++    dragFree: false,
++  });
++
++  // Embla measures slides on init; the set of covers changes as books are read
++  // or hidden, so re-measure to keep snap points and bounds correct.
++  useEffect(() => {
++    emblaApi?.reInit();
++  }, [emblaApi, books]);
++
++  const hideBook = useCallback(
++    async (book: Book) => {
++      const hiddenAt = {
++        ...settings.libraryRecentShelfHiddenAt,
++        [book.hash]: Date.now(),
++      };
++      await saveSysSettings(envConfig, 'libraryRecentShelfHiddenAt', hiddenAt);
++    },
++    [envConfig, settings.libraryRecentShelfHiddenAt],
++  );
++
++  const requestHide = useCallback(
++    async (book: Book) => {
++      // Desktop has a native context menu, so offer the action explicitly.
++      // Touch platforms have no context menu (see BookshelfItem) — hide
++      // immediately and confirm with a toast that explains how it comes back.
++      if (appService?.hasContextMenu) {
++        const items: MenuItemOptions[] = [
++          {
++            text: _('Hide from recent'),
++            action: async () => {
++              await hideBook(book);
++            },
++          },
++        ];
++        const menu = await Menu.new({ items });
++        await menu.popup();
++        return;
++      }
++      await hideBook(book);
++      eventDispatcher.dispatch('toast', {
++        type: 'info',
++        message: _('Hidden until you open it again'),
++        timeout: HIDE_TOAST_TIMEOUT_MS,
++      });
++    },
++    [appService, _, hideBook],
++  );
++
++  return (
++    <div className='recent-shelf select-none pt-3'>
++      <h3 className='text-base-content/60 mb-1 ps-4 text-xs font-medium sm:ps-6'>
++        {_('Recently read')}
++      </h3>
++      <div className='overflow-hidden px-4 sm:px-2' ref={emblaRef}>
++        <div className='flex gap-x-4 sm:gap-x-0'>
++          {books.map((book) => (
++            <RecentShelfCover
++              key={book.hash}
++              book={book}
++              onOpen={onOpenBook}
++              onRequestHide={requestHide}
++            />
++          ))}
++        </div>
++      </div>
++      <hr aria-hidden='true' className='border-base-300 mt-3' />
++    </div>
++  );
++};
++
++export default RecentShelf;
 diff --git a/apps/readest-app/src/app/library/components/SettingsMenu.tsx b/apps/readest-app/src/app/library/components/SettingsMenu.tsx
 index f81846cb..58c6e288 100644
 --- a/apps/readest-app/src/app/library/components/SettingsMenu.tsx
@@ -4347,6 +5292,42 @@ index f81846cb..58c6e288 100644
        ) : (
          <MenuItem label={_('Sign In')} Icon={PiUserCircle} onClick={handleUserLogin}></MenuItem>
        )}
+diff --git a/apps/readest-app/src/app/library/components/ViewMenu.tsx b/apps/readest-app/src/app/library/components/ViewMenu.tsx
+index d83cbc40..90e4060a 100644
+--- a/apps/readest-app/src/app/library/components/ViewMenu.tsx
++++ b/apps/readest-app/src/app/library/components/ViewMenu.tsx
+@@ -104,6 +104,14 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ setIsDropdownOpen }) => {
+     navigateToLibrary(router, `${params.toString()}`);
+   };
+ 
++  const handleToggleRecentShelf = async () => {
++    await saveSysSettings(
++      envConfig,
++      'libraryRecentShelfEnabled',
++      !settings.libraryRecentShelfEnabled,
++    );
++  };
++
+   const handleToggleAutoColumns = async () => {
+     const newValue = !settings.libraryAutoColumns;
+     await saveSysSettings(envConfig, 'libraryAutoColumns', newValue);
+@@ -176,6 +184,16 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ setIsDropdownOpen }) => {
+         />
+       ))}
+ 
++      {/* Recently read shelf */}
++      <hr aria-hidden='true' className='border-base-200 my-1' />
++      <MenuItem
++        label={_('Show recently read')}
++        buttonClass='h-8'
++        toggled={settings.libraryRecentShelfEnabled}
++        onClick={handleToggleRecentShelf}
++        transient
++      />
++
+       {/* Columns */}
+       <hr aria-hidden='true' className='border-base-200 my-1' />
+       <MenuItem label={_('Columns')} buttonClass='h-8' labelClass='text-sm sm:text-xs' disabled />
 diff --git a/apps/readest-app/src/app/library/hooks/useBooksSync.ts b/apps/readest-app/src/app/library/hooks/useBooksSync.ts
 index 7fce895d..8e265b66 100644
 --- a/apps/readest-app/src/app/library/hooks/useBooksSync.ts
@@ -4464,6 +5445,51 @@ index 7dd172fe..deb60a32 100644
        {isSettingsDialogOpen && <SettingsDialog bookKey={''} />}
        {showCatalogManager && <CatalogDialog onClose={handleDismissOPDSDialog} />}
        {failedImportsModal && (
+diff --git a/apps/readest-app/src/app/library/utils/libraryUtils.ts b/apps/readest-app/src/app/library/utils/libraryUtils.ts
+index 3b78d1f2..500730e6 100644
+--- a/apps/readest-app/src/app/library/utils/libraryUtils.ts
++++ b/apps/readest-app/src/app/library/utils/libraryUtils.ts
+@@ -246,6 +246,40 @@ export const createBookSorter =
+     return compareBookByKey(a, b, secondarySortBy, uiLanguage);
+   };
+ 
++/**
++ * A book counts as "read" once it has reading progress. Importing a book sets
++ * timestamps but never `progress`; only opening it (via `updateBookProgress`)
++ * does. Gating on this keeps freshly-added-but-unopened books off the shelf.
++ */
++const hasBeenRead = (book: Book): boolean => book.progress != null;
++
++/**
++ * Whether a book should appear in the recently-read shelf. It must have been
++ * read, not deleted, and not currently hidden — a book is hidden while its
++ * `updatedAt` hasn't moved past the moment the user hid it; reading it again
++ * bumps `updatedAt` (see `updateBookProgress`) so it returns to the shelf.
++ */
++const isRecentShelfBookVisible = (book: Book, hiddenAt: Record<string, number>): boolean =>
++  !book.deletedAt && hasBeenRead(book) && book.updatedAt > (hiddenAt[book.hash] ?? 0);
++
++/**
++ * Pick the books for the recently-read shelf: most-recently-read first, capped
++ * at `count`. Recency reuses the library's own "Date Read" key (`updatedAt`),
++ * so the row matches the app's existing convention. Independent of the main
++ * shelf's sort/grouping — always a flat, recency-ordered slice.
++ */
++export const selectRecentShelfBooks = (
++  books: Book[],
++  count: number,
++  hiddenAt: Record<string, number> = {},
++): Book[] => {
++  const byRecency = createBookSorter(LibrarySortByType.Updated, '');
++  return books
++    .filter((book) => isRecentShelfBookVisible(book, hiddenAt))
++    .sort((a, b) => -byRecency(a, b))
++    .slice(0, count);
++};
++
+ /**
+  * Build a `groupName -> max(book.updatedAt)` map for all groups touched by
+  * the given books. Each book bumps both its direct group and every ancestor
 diff --git a/apps/readest-app/src/app/reader/components/ReadingStatsTracker.tsx b/apps/readest-app/src/app/reader/components/ReadingStatsTracker.tsx
 index 01101031..7b5ffd11 100644
 --- a/apps/readest-app/src/app/reader/components/ReadingStatsTracker.tsx
@@ -7324,6 +8350,19 @@ index 00000000..93a3745e
 +  appendClientSecret(params, clientSecret);
 +  return requestTokens(params, 'refresh', fetchFn);
 +};
+diff --git a/apps/readest-app/src/services/constants.ts b/apps/readest-app/src/services/constants.ts
+index fd590ecc..13335981 100644
+--- a/apps/readest-app/src/services/constants.ts
++++ b/apps/readest-app/src/services/constants.ts
+@@ -132,6 +132,8 @@ export const DEFAULT_SYSTEM_SETTINGS: Partial<SystemSettings> = {
+   libraryCoverFit: 'crop',
+   libraryAutoColumns: true,
+   libraryColumns: 6,
++  libraryRecentShelfEnabled: true,
++  libraryRecentShelfHiddenAt: {},
+ 
+   metadataSeriesCollapsed: false,
+   metadataOthersCollapsed: false,
 diff --git a/apps/readest-app/src/services/drivesync/DriveBlobStore.ts b/apps/readest-app/src/services/drivesync/DriveBlobStore.ts
 new file mode 100644
 index 00000000..bc9a4c1d
@@ -9361,10 +10400,26 @@ index 00000000..0d213c76
 +  return [...winnerByKey.values()];
 +};
 diff --git a/apps/readest-app/src/types/settings.ts b/apps/readest-app/src/types/settings.ts
-index c613b8ff..a447ad7e 100644
+index c613b8ff..8f12000a 100644
 --- a/apps/readest-app/src/types/settings.ts
 +++ b/apps/readest-app/src/types/settings.ts
-@@ -355,6 +355,22 @@ export interface SystemSettings {
+@@ -324,6 +324,15 @@ export interface SystemSettings {
+   libraryCoverFit: LibraryCoverFitType;
+   libraryAutoColumns: boolean;
+   libraryColumns: number;
++  /** Show the recently-read shelf at the top of the library. */
++  libraryRecentShelfEnabled: boolean;
++  /**
++   * Per-book "hide from recent until reopened" timestamps, keyed by book hash.
++   * A book is hidden from the recently-read shelf while its `updatedAt` is at
++   * or before its stored timestamp; reading it again advances `updatedAt` past
++   * the timestamp and the book returns. Local-only until settings sync (Phase 4).
++   */
++  libraryRecentShelfHiddenAt: Record<string, number>;
+   customFonts: CustomFont[];
+   customTextures: CustomTexture[];
+   customDictionaries: ImportedDictionary[];
+@@ -355,6 +364,22 @@ export interface SystemSettings {
     */
    biometricUnlockEnabled?: boolean;
  
@@ -9387,3 +10442,2598 @@ index c613b8ff..a447ad7e 100644
    kosync: KOSyncSettings;
    readwise: ReadwiseSettings;
    hardcover: HardcoverSettings;
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 64585286..4e408b0d 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -4,46 +4,6 @@ settings:
+   autoInstallPeers: true
+   excludeLinksFromLockfile: false
+ 
+-overrides:
+-  glob: '>=11.1.0'
+-  jws: '>=4.0.1'
+-  vite: '>=7.3.5 <8'
+-  esbuild: '>=0.28.1 <0.29'
+-  srvx: '>=0.11.13'
+-  rollup: '>=4.59.0'
+-  undici: '>=7.24.0'
+-  flatted: '>=3.4.2'
+-  body-parser: '>=2.2.1'
+-  dompurify: '>=3.4.9'
+-  i18next-http-backend: '>=3.0.5'
+-  picomatch: '>=4.0.4'
+-  path-to-regexp: '>=8.4.0'
+-  protobufjs: '>=7.6.3 <8'
+-  serialize-javascript: 7.0.5
+-  fast-xml-parser: '>=5.7.0'
+-  lodash: '>=4.18.0'
+-  lodash-es: '>=4.18.0'
+-  postcss: 8.5.14
+-  basic-ftp: '>=5.3.0'
+-  qs: '>=6.15.2'
+-  shell-quote: '>=1.8.4'
+-  form-data: '>=4.0.6'
+-  js-yaml: '>=4.2.0'
+-  '@opentelemetry/core': '>=2.8.0'
+-  '@babel/runtime': '>=7.26.10'
+-  '@babel/helpers': '>=7.26.10'
+-  '@babel/core': '>=7.29.6'
+-  mdast-util-gfm-autolink-literal: 2.0.1
+-  uuid: '>=14.0.0'
+-  ws: '>=8.21.0'
+-  '@emnapi/core': 1.8.1
+-  '@emnapi/runtime': 1.8.1
+-
+-patchedDependencies:
+-  '@ai-sdk/provider-utils@3.0.25': 4611a356f4bb4e6f1196858719f8cb03947a41850257ee0527b0ec03f927dd6d
+-  '@ai-sdk/provider-utils@4.0.27': 168f9924f516aa1264359fc6b3520c6aaba761842888ccd504660fc30ee96d6f
+-  mdast-util-gfm-autolink-literal@2.0.1: a119b196bac546b8f07e1a9600ced6f526b0676e2b959914868e393ecffbaff8
+-
+ importers:
+ 
+   .:
+@@ -100,10 +60,10 @@ importers:
+         specifier: ^3.2.2
+         version: 3.2.2(react@19.2.5)
+       '@emnapi/core':
+-        specifier: 1.8.1
++        specifier: ^1.8.1
+         version: 1.8.1
+       '@emnapi/runtime':
+-        specifier: 1.8.1
++        specifier: ^1.8.1
+         version: 1.8.1
+       '@fabianlars/tauri-plugin-oauth':
+         specifier: '2'
+@@ -265,8 +225,11 @@ importers:
+         specifier: ^1.11.13
+         version: 1.11.20
+       dompurify:
+-        specifier: '>=3.4.9'
++        specifier: ^3.4.0
+         version: 3.4.10
++      embla-carousel-react:
++        specifier: ^8.6.0
++        version: 8.6.0(react@19.2.5)
+       fflate:
+         specifier: ^0.8.2
+         version: 0.8.2
+@@ -295,7 +258,7 @@ importers:
+         specifier: ^8.0.2
+         version: 8.2.1
+       i18next-http-backend:
+-        specifier: '>=3.0.5'
++        specifier: ^3.0.5
+         version: 3.0.6
+       iso-639-2:
+         specifier: ^3.0.2
+@@ -400,13 +363,13 @@ importers:
+         specifier: ^1.6.0
+         version: 1.6.0
+       uuid:
+-        specifier: '>=14.0.0'
++        specifier: ^14.0.0
+         version: 14.0.0
+       virtua:
+         specifier: ^0.49.1
+         version: 0.49.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+       ws:
+-        specifier: '>=8.21.0'
++        specifier: ^8.18.3
+         version: 8.21.0
+       zod:
+         specifier: ^4.0.8
+@@ -548,7 +511,7 @@ importers:
+         specifier: ^1.58.2
+         version: 1.60.0
+       postcss:
+-        specifier: 8.5.14
++        specifier: ^8.4.49
+         version: 8.5.14
+       postcss-cli:
+         specifier: ^11.0.0
+@@ -575,7 +538,7 @@ importers:
+         specifier: ^0.0.21
+         version: 0.0.21(next@16.2.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.106.2(postcss@8.5.14))
+       vite:
+-        specifier: '>=7.3.5 <8'
++        specifier: ^7.3.3
+         version: 7.3.5(@types/node@22.19.19)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.9.0)
+       vite-tsconfig-paths:
+         specifier: ^5.1.4
+@@ -596,7 +559,7 @@ importers:
+         specifier: ^2.8.16
+         version: 2.8.26
+       dompurify:
+-        specifier: '>=3.4.9'
++        specifier: ^3.4.0
+         version: 3.4.10
+     devDependencies:
+       '@types/chrome':
+@@ -674,7 +637,7 @@ importers:
+         specifier: ^5.7.284
+         version: 5.7.284
+       rollup:
+-        specifier: '>=4.59.0'
++        specifier: ^4.22.4
+         version: 4.60.3
+ 
+ packages:
+@@ -821,28 +784,24 @@ packages:
+     engines: {node: '>= 10'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@ast-grep/napi-linux-arm64-musl@0.40.5':
+     resolution: {integrity: sha512-/qKsmds5FMoaEj6FdNzepbmLMtlFuBLdrAn9GIWCqOIcVcYvM1Nka8+mncfeXB/MFZKOrzQsQdPTWqrrQzXLrA==}
+     engines: {node: '>= 10'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@ast-grep/napi-linux-x64-gnu@0.40.5':
+     resolution: {integrity: sha512-DP4oDbq7f/1A2hRTFLhJfDFR6aI5mRWdEfKfHzRItmlKsR9WlcEl1qDJs/zX9R2EEtIDsSKRzuJNfJllY3/W8Q==}
+     engines: {node: '>= 10'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@ast-grep/napi-linux-x64-musl@0.40.5':
+     resolution: {integrity: sha512-BRZUvVBPUNpWPo6Ns8chXVzxHPY+k9gpsubGTHy92Q26ecZULd/dTkWWdnvfhRqttsSQ9Pe/XQdi5+hDQ6RYcg==}
+     engines: {node: '>= 10'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@ast-grep/napi-win32-arm64-msvc@0.40.5':
+     resolution: {integrity: sha512-y95zSEwc7vhxmcrcH0GnK4ZHEBQrmrszRBNQovzaciF9GUqEcCACNLoBesn4V47IaOp4fYgD2/EhGRTIBFb2Ug==}
+@@ -1113,7 +1072,7 @@ packages:
+     resolution: {integrity: sha512-UPUVSyXbOh627KiCIGQSgwWzGeBKLkaJ9PJEdrngIwMSzxLR4jS4+f1f1jb7VzBbg8nFLaYotvVPFCTqdrmTAg==}
+     engines: {node: '>=6.9.0'}
+     peerDependencies:
+-      '@babel/core': '>=7.29.6'
++      '@babel/core': ^7.0.0
+ 
+   '@babel/helper-plugin-utils@7.28.6':
+     resolution: {integrity: sha512-S9gzZ/bz83GRysI7gAD4wPT/AI3uCnY+9xn+Mx/KPs2JwHJIz1W8PZkg2cqyt3RNOBM8ejcXhV6y8Og7ly/Dug==}
+@@ -1139,8 +1098,8 @@ packages:
+     resolution: {integrity: sha512-N9ZErrD+yW5geCDtBqnOoxmR8+tNKiGuxKlDpuJxfsqpa2dFcexaziGAE/qoHLiDDreVNMupxGmSoNlyvsA3gw==}
+     engines: {node: '>=6.9.0'}
+ 
+-  '@babel/helpers@7.29.2':
+-    resolution: {integrity: sha512-HoGuUs4sCZNezVEKdVcwqmZN8GoHirLUcLaYVNBK2J0DadGtdcqgr3BCbvH8+XUo4NGjNl3VOtSjEKNzqfFgKw==}
++  '@babel/helpers@7.29.7':
++    resolution: {integrity: sha512-1k2lAGRMfHTcwuNYcCNUmaUffmQv8KWMfh2iJUUeRlwlwH4FdNG7mfPI10NPfLHJFThE4Tyr4mv7kTNZOiPuBg==}
+     engines: {node: '>=6.9.0'}
+ 
+   '@babel/parser@7.29.3':
+@@ -1157,22 +1116,18 @@ packages:
+     resolution: {integrity: sha512-6UzkCs+ejGdZ5mFFC/OCUrv028ab2fp1znZmCZjAOBKiBK2jXD1O+BPSfX8X2qjJ75fZBMSnQn3Rq2mrBJK2mw==}
+     engines: {node: '>=6.9.0'}
+     peerDependencies:
+-      '@babel/core': '>=7.29.6'
++      '@babel/core': ^7.0.0-0
+ 
+   '@babel/plugin-transform-react-jsx-source@7.27.1':
+     resolution: {integrity: sha512-zbwoTsBruTeKB9hSq73ha66iFeJHuaFkUbwvqElnygoNbj/jHRsSeokowZFN3CZ64IvEqcmmkVe89OPXc7ldAw==}
+     engines: {node: '>=6.9.0'}
+     peerDependencies:
+-      '@babel/core': '>=7.29.6'
++      '@babel/core': ^7.0.0-0
+ 
+   '@babel/runtime@7.29.2':
+     resolution: {integrity: sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==}
+     engines: {node: '>=6.9.0'}
+ 
+-  '@babel/template@7.28.6':
+-    resolution: {integrity: sha512-YA6Ma2KsCdGb+WC6UpBVFJGXL58MDA6oyONbjyF/+5sBgxY/dwkhLogbMT2GXXyU84/IhRw/2D1Os1B/giz+BQ==}
+-    engines: {node: '>=6.9.0'}
+-
+   '@babel/template@7.29.7':
+     resolution: {integrity: sha512-puq+Gf35oI24FeN11LkoUQFqv9uwNeWpxXZi/Ji3rRIoKAzKnxRaZ+Gkj0vKS9ZCiTESfng1N9LyOyXvo+m+Gg==}
+     engines: {node: '>=6.9.0'}
+@@ -1215,28 +1170,24 @@ packages:
+     engines: {node: '>=14.21.3'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@biomejs/cli-linux-arm64@2.4.15':
+     resolution: {integrity: sha512-owaAMZD/T4LrD0ELNCk0Km3qrRHuM0X6EAyVE1FSqGY0rbLoiDLrO4Us2tllm6cAeB2Ioa9C2C08NZPdr8+0Ug==}
+     engines: {node: '>=14.21.3'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@biomejs/cli-linux-x64-musl@2.4.15':
+     resolution: {integrity: sha512-CNq/9W38SYSH023lfcQ4KKU8K0YX8T//FZUhcgtMMRABDojx5XsMV7jlweAvGSl389wJQB29Qo6Zb/a+jdvt+w==}
+     engines: {node: '>=14.21.3'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@biomejs/cli-linux-x64@2.4.15':
+     resolution: {integrity: sha512-0jj7THz12GbUOLmMibktK6DZjqz2zV64KFxyBtcFTKPiiOIY0a7vns1elpO1dERvxpsZ5ik0oFfz0oGwFde1+g==}
+     engines: {node: '>=14.21.3'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@biomejs/cli-win32-arm64@2.4.15':
+     resolution: {integrity: sha512-ouhkYdlhp/1GghEJPdWwD/Vi3gQ1nFxuSpMolWsbq3Lsq3QUR4jl6UdhhscdCugKU5vOEuMiJhvKj66O0OCq+w==}
+@@ -1397,158 +1348,464 @@ packages:
+   '@emnapi/wasi-threads@1.1.0':
+     resolution: {integrity: sha512-WI0DdZ8xFSbgMjR1sFsKABJ/C5OnRrjT06JXbZKexJGrDuPTzZdDYfFlsgcCXCyf+suG5QU2e/y1Wo2V/OapLQ==}
+ 
+-  '@esbuild/aix-ppc64@0.28.1':
+-    resolution: {integrity: sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==}
++  '@esbuild/aix-ppc64@0.25.4':
++    resolution: {integrity: sha512-1VCICWypeQKhVbE9oW/sJaAmjLxhVqacdkvPLEjwlttjfwENRSClS8EjBz0KzRyFSCPDIkuXW34Je/vk7zdB7Q==}
++    engines: {node: '>=18'}
++    cpu: [ppc64]
++    os: [aix]
++
++  '@esbuild/aix-ppc64@0.27.3':
++    resolution: {integrity: sha512-9fJMTNFTWZMh5qwrBItuziu834eOCUcEqymSH7pY+zoMVEZg3gcPuBNxH1EvfVYe9h0x/Ptw8KBzv7qxb7l8dg==}
++    engines: {node: '>=18'}
++    cpu: [ppc64]
++    os: [aix]
++
++  '@esbuild/aix-ppc64@0.27.7':
++    resolution: {integrity: sha512-EKX3Qwmhz1eMdEJokhALr0YiD0lhQNwDqkPYyPhiSwKrh7/4KRjQc04sZ8db+5DVVnZ1LmbNDI1uAMPEUBnQPg==}
+     engines: {node: '>=18'}
+     cpu: [ppc64]
+     os: [aix]
+ 
+-  '@esbuild/android-arm64@0.28.1':
+-    resolution: {integrity: sha512-34EGEbCIAgosYz6goLcopX6Mo7NyGv9tfwEM2/7Ce2VcVRk568iSvniGWcUXIy7wEDR1wzolcxcriFVrWYcwBg==}
++  '@esbuild/android-arm64@0.25.4':
++    resolution: {integrity: sha512-bBy69pgfhMGtCnwpC/x5QhfxAz/cBgQ9enbtwjf6V9lnPI/hMyT9iWpR1arm0l3kttTr4L0KSLpKmLp/ilKS9A==}
+     engines: {node: '>=18'}
+     cpu: [arm64]
+     os: [android]
+ 
+-  '@esbuild/android-arm@0.28.1':
+-    resolution: {integrity: sha512-0k2F129Xdio1TdJfzJ8sy1Q47vUD2NnwdhiAf7drUN1EBTfPf4hsFCtmMgu/6m8JSzsBrlmVjudMBQqOfG8usQ==}
++  '@esbuild/android-arm64@0.27.3':
++    resolution: {integrity: sha512-YdghPYUmj/FX2SYKJ0OZxf+iaKgMsKHVPF1MAq/P8WirnSpCStzKJFjOjzsW0QQ7oIAiccHdcqjbHmJxRb/dmg==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [android]
++
++  '@esbuild/android-arm64@0.27.7':
++    resolution: {integrity: sha512-62dPZHpIXzvChfvfLJow3q5dDtiNMkwiRzPylSCfriLvZeq0a1bWChrGx/BbUbPwOrsWKMn8idSllklzBy+dgQ==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [android]
++
++  '@esbuild/android-arm@0.25.4':
++    resolution: {integrity: sha512-QNdQEps7DfFwE3hXiU4BZeOV68HHzYwGd0Nthhd3uCkkEKK7/R6MTgM0P7H7FAs5pU/DIWsviMmEGxEoxIZ+ZQ==}
++    engines: {node: '>=18'}
++    cpu: [arm]
++    os: [android]
++
++  '@esbuild/android-arm@0.27.3':
++    resolution: {integrity: sha512-i5D1hPY7GIQmXlXhs2w8AWHhenb00+GxjxRncS2ZM7YNVGNfaMxgzSGuO8o8SJzRc/oZwU2bcScvVERk03QhzA==}
++    engines: {node: '>=18'}
++    cpu: [arm]
++    os: [android]
++
++  '@esbuild/android-arm@0.27.7':
++    resolution: {integrity: sha512-jbPXvB4Yj2yBV7HUfE2KHe4GJX51QplCN1pGbYjvsyCZbQmies29EoJbkEc+vYuU5o45AfQn37vZlyXy4YJ8RQ==}
+     engines: {node: '>=18'}
+     cpu: [arm]
+     os: [android]
+ 
+-  '@esbuild/android-x64@0.28.1':
+-    resolution: {integrity: sha512-dbwY7ltSMDWsRatcRpCnES4F+im88OCUgGZjy52shC7GqHRE/cYlxNbB4Z4UpJswpcc4Qxd2oE/ufM0p61IKng==}
++  '@esbuild/android-x64@0.25.4':
++    resolution: {integrity: sha512-TVhdVtQIFuVpIIR282btcGC2oGQoSfZfmBdTip2anCaVYcqWlZXGcdcKIUklfX2wj0JklNYgz39OBqh2cqXvcQ==}
+     engines: {node: '>=18'}
+     cpu: [x64]
+     os: [android]
+ 
+-  '@esbuild/darwin-arm64@0.28.1':
+-    resolution: {integrity: sha512-TZbWkQY7kvTAXbXUT7uVACR5cMHsDiSz9z7ZKAX/RTq/WJEk3QyRr0wZpNhBDX+/0CtdqUIJlOiodQcta6tY3Q==}
++  '@esbuild/android-x64@0.27.3':
++    resolution: {integrity: sha512-IN/0BNTkHtk8lkOM8JWAYFg4ORxBkZQf9zXiEOfERX/CzxW3Vg1ewAhU7QSWQpVIzTW+b8Xy+lGzdYXV6UZObQ==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [android]
++
++  '@esbuild/android-x64@0.27.7':
++    resolution: {integrity: sha512-x5VpMODneVDb70PYV2VQOmIUUiBtY3D3mPBG8NxVk5CogneYhkR7MmM3yR/uMdITLrC1ml/NV1rj4bMJuy9MCg==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [android]
++
++  '@esbuild/darwin-arm64@0.25.4':
++    resolution: {integrity: sha512-Y1giCfM4nlHDWEfSckMzeWNdQS31BQGs9/rouw6Ub91tkK79aIMTH3q9xHvzH8d0wDru5Ci0kWB8b3up/nl16g==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [darwin]
++
++  '@esbuild/darwin-arm64@0.27.3':
++    resolution: {integrity: sha512-Re491k7ByTVRy0t3EKWajdLIr0gz2kKKfzafkth4Q8A5n1xTHrkqZgLLjFEHVD+AXdUGgQMq+Godfq45mGpCKg==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [darwin]
++
++  '@esbuild/darwin-arm64@0.27.7':
++    resolution: {integrity: sha512-5lckdqeuBPlKUwvoCXIgI2D9/ABmPq3Rdp7IfL70393YgaASt7tbju3Ac+ePVi3KDH6N2RqePfHnXkaDtY9fkw==}
+     engines: {node: '>=18'}
+     cpu: [arm64]
+     os: [darwin]
+ 
+-  '@esbuild/darwin-x64@0.28.1':
+-    resolution: {integrity: sha512-zfdzgK9ACBNZLI/CyHTOx81SyNbM6YXn7rxSgX97VjyiPl9W1i4Ka4fgKECEoFCKGpvBj5qArWIGgQjOwkgskQ==}
++  '@esbuild/darwin-x64@0.25.4':
++    resolution: {integrity: sha512-CJsry8ZGM5VFVeyUYB3cdKpd/H69PYez4eJh1W/t38vzutdjEjtP7hB6eLKBoOdxcAlCtEYHzQ/PJ/oU9I4u0A==}
+     engines: {node: '>=18'}
+     cpu: [x64]
+     os: [darwin]
+ 
+-  '@esbuild/freebsd-arm64@0.28.1':
+-    resolution: {integrity: sha512-wG2EA8ENdEI0qhkSZMjfqrdY+ziCYCPMmtZjjIwOmXFjmyzEHn+UUxk5of+SYsjtfs3VpnlC7QLzSI5hY/rOAw==}
++  '@esbuild/darwin-x64@0.27.3':
++    resolution: {integrity: sha512-vHk/hA7/1AckjGzRqi6wbo+jaShzRowYip6rt6q7VYEDX4LEy1pZfDpdxCBnGtl+A5zq8iXDcyuxwtv3hNtHFg==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [darwin]
++
++  '@esbuild/darwin-x64@0.27.7':
++    resolution: {integrity: sha512-rYnXrKcXuT7Z+WL5K980jVFdvVKhCHhUwid+dDYQpH+qu+TefcomiMAJpIiC2EM3Rjtq0sO3StMV/+3w3MyyqQ==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [darwin]
++
++  '@esbuild/freebsd-arm64@0.25.4':
++    resolution: {integrity: sha512-yYq+39NlTRzU2XmoPW4l5Ifpl9fqSk0nAJYM/V/WUGPEFfek1epLHJIkTQM6bBs1swApjO5nWgvr843g6TjxuQ==}
+     engines: {node: '>=18'}
+     cpu: [arm64]
+     os: [freebsd]
+ 
+-  '@esbuild/freebsd-x64@0.28.1':
+-    resolution: {integrity: sha512-i7dZ9vQgnvSCzi/rYCXNgtF/U+eKZNJBzu3eTQbRgHnM7tNSizLOkRFAl3qzVc/Op/u5YkHHa4pf/3DOYHthLQ==}
++  '@esbuild/freebsd-arm64@0.27.3':
++    resolution: {integrity: sha512-ipTYM2fjt3kQAYOvo6vcxJx3nBYAzPjgTCk7QEgZG8AUO3ydUhvelmhrbOheMnGOlaSFUoHXB6un+A7q4ygY9w==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [freebsd]
++
++  '@esbuild/freebsd-arm64@0.27.7':
++    resolution: {integrity: sha512-B48PqeCsEgOtzME2GbNM2roU29AMTuOIN91dsMO30t+Ydis3z/3Ngoj5hhnsOSSwNzS+6JppqWsuhTp6E82l2w==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [freebsd]
++
++  '@esbuild/freebsd-x64@0.25.4':
++    resolution: {integrity: sha512-0FgvOJ6UUMflsHSPLzdfDnnBBVoCDtBTVyn/MrWloUNvq/5SFmh13l3dvgRPkDihRxb77Y17MbqbCAa2strMQQ==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [freebsd]
++
++  '@esbuild/freebsd-x64@0.27.3':
++    resolution: {integrity: sha512-dDk0X87T7mI6U3K9VjWtHOXqwAMJBNN2r7bejDsc+j03SEjtD9HrOl8gVFByeM0aJksoUuUVU9TBaZa2rgj0oA==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [freebsd]
++
++  '@esbuild/freebsd-x64@0.27.7':
++    resolution: {integrity: sha512-jOBDK5XEjA4m5IJK3bpAQF9/Lelu/Z9ZcdhTRLf4cajlB+8VEhFFRjWgfy3M1O4rO2GQ/b2dLwCUGpiF/eATNQ==}
+     engines: {node: '>=18'}
+     cpu: [x64]
+     os: [freebsd]
+ 
+-  '@esbuild/linux-arm64@0.28.1':
+-    resolution: {integrity: sha512-yHs+0uc8+nvEAfAfxrWQKK5peSNzBc4PegcMO0EJ2hT71uA7vB8Ihg2e77R2P7SG5uYjPbHlLLmve4LLLRCf0g==}
++  '@esbuild/linux-arm64@0.25.4':
++    resolution: {integrity: sha512-+89UsQTfXdmjIvZS6nUnOOLoXnkUTB9hR5QAeLrQdzOSWZvNSAXAtcRDHWtqAUtAmv7ZM1WPOOeSxDzzzMogiQ==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [linux]
++
++  '@esbuild/linux-arm64@0.27.3':
++    resolution: {integrity: sha512-sZOuFz/xWnZ4KH3YfFrKCf1WyPZHakVzTiqji3WDc0BCl2kBwiJLCXpzLzUBLgmp4veFZdvN5ChW4Eq/8Fc2Fg==}
+     engines: {node: '>=18'}
+     cpu: [arm64]
+     os: [linux]
+ 
+-  '@esbuild/linux-arm@0.28.1':
+-    resolution: {integrity: sha512-qVXBOHQS+d5Y722GwJzJUtOLlX7km3CraOaGormF1pDtPd2C/l1SHRPgjLunLGe51Sh5YYWKMFDyV4SxgMQYTQ==}
++  '@esbuild/linux-arm64@0.27.7':
++    resolution: {integrity: sha512-RZPHBoxXuNnPQO9rvjh5jdkRmVizktkT7TCDkDmQ0W2SwHInKCAV95GRuvdSvA7w4VMwfCjUiPwDi0ZO6Nfe9A==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [linux]
++
++  '@esbuild/linux-arm@0.25.4':
++    resolution: {integrity: sha512-kro4c0P85GMfFYqW4TWOpvmF8rFShbWGnrLqlzp4X1TNWjRY3JMYUfDCtOxPKOIY8B0WC8HN51hGP4I4hz4AaQ==}
++    engines: {node: '>=18'}
++    cpu: [arm]
++    os: [linux]
++
++  '@esbuild/linux-arm@0.27.3':
++    resolution: {integrity: sha512-s6nPv2QkSupJwLYyfS+gwdirm0ukyTFNl3KTgZEAiJDd+iHZcbTPPcWCcRYH+WlNbwChgH2QkE9NSlNrMT8Gfw==}
+     engines: {node: '>=18'}
+     cpu: [arm]
+     os: [linux]
+ 
+-  '@esbuild/linux-ia32@0.28.1':
+-    resolution: {integrity: sha512-d1z4ZuP0ajrfz/FhGT4vv278rX8KnPPJx8i5+AtK7TYbx9Le9F1hyzurZpkEyjkGa9dUGhQow4C1NmeGvqxN2w==}
++  '@esbuild/linux-arm@0.27.7':
++    resolution: {integrity: sha512-RkT/YXYBTSULo3+af8Ib0ykH8u2MBh57o7q/DAs3lTJlyVQkgQvlrPTnjIzzRPQyavxtPtfg0EopvDyIt0j1rA==}
++    engines: {node: '>=18'}
++    cpu: [arm]
++    os: [linux]
++
++  '@esbuild/linux-ia32@0.25.4':
++    resolution: {integrity: sha512-yTEjoapy8UP3rv8dB0ip3AfMpRbyhSN3+hY8mo/i4QXFeDxmiYbEKp3ZRjBKcOP862Ua4b1PDfwlvbuwY7hIGQ==}
+     engines: {node: '>=18'}
+     cpu: [ia32]
+     os: [linux]
+ 
+-  '@esbuild/linux-loong64@0.28.1':
+-    resolution: {integrity: sha512-M5sRjUVZrkm1OAPR3dlOYzNmN+loZKGVi1VUQGrwuqLcbR6qeAz+famMhjASeH3YVKvZz+zT1jlh/keC3Rj/lg==}
++  '@esbuild/linux-ia32@0.27.3':
++    resolution: {integrity: sha512-yGlQYjdxtLdh0a3jHjuwOrxQjOZYD/C9PfdbgJJF3TIZWnm/tMd/RcNiLngiu4iwcBAOezdnSLAwQDPqTmtTYg==}
++    engines: {node: '>=18'}
++    cpu: [ia32]
++    os: [linux]
++
++  '@esbuild/linux-ia32@0.27.7':
++    resolution: {integrity: sha512-GA48aKNkyQDbd3KtkplYWT102C5sn/EZTY4XROkxONgruHPU72l+gW+FfF8tf2cFjeHaRbWpOYa/uRBz/Xq1Pg==}
++    engines: {node: '>=18'}
++    cpu: [ia32]
++    os: [linux]
++
++  '@esbuild/linux-loong64@0.25.4':
++    resolution: {integrity: sha512-NeqqYkrcGzFwi6CGRGNMOjWGGSYOpqwCjS9fvaUlX5s3zwOtn1qwg1s2iE2svBe4Q/YOG1q6875lcAoQK/F4VA==}
++    engines: {node: '>=18'}
++    cpu: [loong64]
++    os: [linux]
++
++  '@esbuild/linux-loong64@0.27.3':
++    resolution: {integrity: sha512-WO60Sn8ly3gtzhyjATDgieJNet/KqsDlX5nRC5Y3oTFcS1l0KWba+SEa9Ja1GfDqSF1z6hif/SkpQJbL63cgOA==}
+     engines: {node: '>=18'}
+     cpu: [loong64]
+     os: [linux]
+ 
+-  '@esbuild/linux-mips64el@0.28.1':
+-    resolution: {integrity: sha512-mRObBZeHh2OxcBFPWE/FjylkRgZdYuiTR3vaTozquCGOH14iP9oN4x4Ge81CoIDYQrXmIxpFumJBu5MtZpnQJQ==}
++  '@esbuild/linux-loong64@0.27.7':
++    resolution: {integrity: sha512-a4POruNM2oWsD4WKvBSEKGIiWQF8fZOAsycHOt6JBpZ+JN2n2JH9WAv56SOyu9X5IqAjqSIPTaJkqN8F7XOQ5Q==}
++    engines: {node: '>=18'}
++    cpu: [loong64]
++    os: [linux]
++
++  '@esbuild/linux-mips64el@0.25.4':
++    resolution: {integrity: sha512-IcvTlF9dtLrfL/M8WgNI/qJYBENP3ekgsHbYUIzEzq5XJzzVEV/fXY9WFPfEEXmu3ck2qJP8LG/p3Q8f7Zc2Xg==}
++    engines: {node: '>=18'}
++    cpu: [mips64el]
++    os: [linux]
++
++  '@esbuild/linux-mips64el@0.27.3':
++    resolution: {integrity: sha512-APsymYA6sGcZ4pD6k+UxbDjOFSvPWyZhjaiPyl/f79xKxwTnrn5QUnXR5prvetuaSMsb4jgeHewIDCIWljrSxw==}
++    engines: {node: '>=18'}
++    cpu: [mips64el]
++    os: [linux]
++
++  '@esbuild/linux-mips64el@0.27.7':
++    resolution: {integrity: sha512-KabT5I6StirGfIz0FMgl1I+R1H73Gp0ofL9A3nG3i/cYFJzKHhouBV5VWK1CSgKvVaG4q1RNpCTR2LuTVB3fIw==}
+     engines: {node: '>=18'}
+     cpu: [mips64el]
+     os: [linux]
+ 
+-  '@esbuild/linux-ppc64@0.28.1':
+-    resolution: {integrity: sha512-slScBsMAb3GFDcdrCgLwZtPYRoH2H/youv10QiZyRjmsP48fznoveWytSgCI/R0ZcUgpc0ZhIUEx6LHts8yrfQ==}
++  '@esbuild/linux-ppc64@0.25.4':
++    resolution: {integrity: sha512-HOy0aLTJTVtoTeGZh4HSXaO6M95qu4k5lJcH4gxv56iaycfz1S8GO/5Jh6X4Y1YiI0h7cRyLi+HixMR+88swag==}
++    engines: {node: '>=18'}
++    cpu: [ppc64]
++    os: [linux]
++
++  '@esbuild/linux-ppc64@0.27.3':
++    resolution: {integrity: sha512-eizBnTeBefojtDb9nSh4vvVQ3V9Qf9Df01PfawPcRzJH4gFSgrObw+LveUyDoKU3kxi5+9RJTCWlj4FjYXVPEA==}
+     engines: {node: '>=18'}
+     cpu: [ppc64]
+     os: [linux]
+ 
+-  '@esbuild/linux-riscv64@0.28.1':
+-    resolution: {integrity: sha512-kw0owk1o0GFETUJyW0jc0G4Yzs0BHZn0JDZ8JRT088vjJYX777BAs1fDGxAC+q831qOs2DTC96mNsG2opdfyyQ==}
++  '@esbuild/linux-ppc64@0.27.7':
++    resolution: {integrity: sha512-gRsL4x6wsGHGRqhtI+ifpN/vpOFTQtnbsupUF5R5YTAg+y/lKelYR1hXbnBdzDjGbMYjVJLJTd2OFmMewAgwlQ==}
++    engines: {node: '>=18'}
++    cpu: [ppc64]
++    os: [linux]
++
++  '@esbuild/linux-riscv64@0.25.4':
++    resolution: {integrity: sha512-i8JUDAufpz9jOzo4yIShCTcXzS07vEgWzyX3NH2G7LEFVgrLEhjwL3ajFE4fZI3I4ZgiM7JH3GQ7ReObROvSUA==}
++    engines: {node: '>=18'}
++    cpu: [riscv64]
++    os: [linux]
++
++  '@esbuild/linux-riscv64@0.27.3':
++    resolution: {integrity: sha512-3Emwh0r5wmfm3ssTWRQSyVhbOHvqegUDRd0WhmXKX2mkHJe1SFCMJhagUleMq+Uci34wLSipf8Lagt4LlpRFWQ==}
+     engines: {node: '>=18'}
+     cpu: [riscv64]
+     os: [linux]
+ 
+-  '@esbuild/linux-s390x@0.28.1':
+-    resolution: {integrity: sha512-/lAIjX8aYFRByhh6L5rYtPEDRqa9de/4V/juOXcta5frjvzXO4/sqEtyytse0g3zZFuWu5cDN0MkLz2qRDD2Ag==}
++  '@esbuild/linux-riscv64@0.27.7':
++    resolution: {integrity: sha512-hL25LbxO1QOngGzu2U5xeXtxXcW+/GvMN3ejANqXkxZ/opySAZMrc+9LY/WyjAan41unrR3YrmtTsUpwT66InQ==}
++    engines: {node: '>=18'}
++    cpu: [riscv64]
++    os: [linux]
++
++  '@esbuild/linux-s390x@0.25.4':
++    resolution: {integrity: sha512-jFnu+6UbLlzIjPQpWCNh5QtrcNfMLjgIavnwPQAfoGx4q17ocOU9MsQ2QVvFxwQoWpZT8DvTLooTvmOQXkO51g==}
++    engines: {node: '>=18'}
++    cpu: [s390x]
++    os: [linux]
++
++  '@esbuild/linux-s390x@0.27.3':
++    resolution: {integrity: sha512-pBHUx9LzXWBc7MFIEEL0yD/ZVtNgLytvx60gES28GcWMqil8ElCYR4kvbV2BDqsHOvVDRrOxGySBM9Fcv744hw==}
+     engines: {node: '>=18'}
+     cpu: [s390x]
+     os: [linux]
+ 
+-  '@esbuild/linux-x64@0.28.1':
+-    resolution: {integrity: sha512-u/anNYF2mmVOEDwLtnQ1wOr3EZ9sTNGLWrsYGYwHWzGA3Si84IOkHXlbWTD1NB+9/1lcnweYKO54uhxZydNzfA==}
++  '@esbuild/linux-s390x@0.27.7':
++    resolution: {integrity: sha512-2k8go8Ycu1Kb46vEelhu1vqEP+UeRVj2zY1pSuPdgvbd5ykAw82Lrro28vXUrRmzEsUV0NzCf54yARIK8r0fdw==}
++    engines: {node: '>=18'}
++    cpu: [s390x]
++    os: [linux]
++
++  '@esbuild/linux-x64@0.25.4':
++    resolution: {integrity: sha512-6e0cvXwzOnVWJHq+mskP8DNSrKBr1bULBvnFLpc1KY+d+irZSgZ02TGse5FsafKS5jg2e4pbvK6TPXaF/A6+CA==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [linux]
++
++  '@esbuild/linux-x64@0.27.3':
++    resolution: {integrity: sha512-Czi8yzXUWIQYAtL/2y6vogER8pvcsOsk5cpwL4Gk5nJqH5UZiVByIY8Eorm5R13gq+DQKYg0+JyQoytLQas4dA==}
+     engines: {node: '>=18'}
+     cpu: [x64]
+     os: [linux]
+ 
+-  '@esbuild/netbsd-arm64@0.28.1':
+-    resolution: {integrity: sha512-oks0DYbLwWMmaakTsCb+zL4E+aHRVLom9IJZOAthMQEPiQmydXHkziYEsGYRx0uNV/IjEKGAV941JzH02pflqw==}
++  '@esbuild/linux-x64@0.27.7':
++    resolution: {integrity: sha512-hzznmADPt+OmsYzw1EE33ccA+HPdIqiCRq7cQeL1Jlq2gb1+OyWBkMCrYGBJ+sxVzve2ZJEVeePbLM2iEIZSxA==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [linux]
++
++  '@esbuild/netbsd-arm64@0.25.4':
++    resolution: {integrity: sha512-vUnkBYxZW4hL/ie91hSqaSNjulOnYXE1VSLusnvHg2u3jewJBz3YzB9+oCw8DABeVqZGg94t9tyZFoHma8gWZQ==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [netbsd]
++
++  '@esbuild/netbsd-arm64@0.27.3':
++    resolution: {integrity: sha512-sDpk0RgmTCR/5HguIZa9n9u+HVKf40fbEUt+iTzSnCaGvY9kFP0YKBWZtJaraonFnqef5SlJ8/TiPAxzyS+UoA==}
+     engines: {node: '>=18'}
+     cpu: [arm64]
+     os: [netbsd]
+ 
+-  '@esbuild/netbsd-x64@0.28.1':
+-    resolution: {integrity: sha512-aeL6lAnN89Hz43Mlh1G8ARasbuoYvSITDEx0tHh5b7jJnHcssqgjy9Yx430GDpmCa6OyrKoS0aNRjKundRizGg==}
++  '@esbuild/netbsd-arm64@0.27.7':
++    resolution: {integrity: sha512-b6pqtrQdigZBwZxAn1UpazEisvwaIDvdbMbmrly7cDTMFnw/+3lVxxCTGOrkPVnsYIosJJXAsILG9XcQS+Yu6w==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [netbsd]
++
++  '@esbuild/netbsd-x64@0.25.4':
++    resolution: {integrity: sha512-XAg8pIQn5CzhOB8odIcAm42QsOfa98SBeKUdo4xa8OvX8LbMZqEtgeWE9P/Wxt7MlG2QqvjGths+nq48TrUiKw==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [netbsd]
++
++  '@esbuild/netbsd-x64@0.27.3':
++    resolution: {integrity: sha512-P14lFKJl/DdaE00LItAukUdZO5iqNH7+PjoBm+fLQjtxfcfFE20Xf5CrLsmZdq5LFFZzb5JMZ9grUwvtVYzjiA==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [netbsd]
++
++  '@esbuild/netbsd-x64@0.27.7':
++    resolution: {integrity: sha512-OfatkLojr6U+WN5EDYuoQhtM+1xco+/6FSzJJnuWiUw5eVcicbyK3dq5EeV/QHT1uy6GoDhGbFpprUiHUYggrw==}
+     engines: {node: '>=18'}
+     cpu: [x64]
+     os: [netbsd]
+ 
+-  '@esbuild/openbsd-arm64@0.28.1':
+-    resolution: {integrity: sha512-MEFJe5C3R8pwXdZ5Y21oo6m7ePiS0d9pWucn99O/wvyJZChoIQKrQDxKrGeW8F5+T0okTHesAmDeiHDTIq0V/Q==}
++  '@esbuild/openbsd-arm64@0.25.4':
++    resolution: {integrity: sha512-Ct2WcFEANlFDtp1nVAXSNBPDxyU+j7+tId//iHXU2f/lN5AmO4zLyhDcpR5Cz1r08mVxzt3Jpyt4PmXQ1O6+7A==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [openbsd]
++
++  '@esbuild/openbsd-arm64@0.27.3':
++    resolution: {integrity: sha512-AIcMP77AvirGbRl/UZFTq5hjXK+2wC7qFRGoHSDrZ5v5b8DK/GYpXW3CPRL53NkvDqb9D+alBiC/dV0Fb7eJcw==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [openbsd]
++
++  '@esbuild/openbsd-arm64@0.27.7':
++    resolution: {integrity: sha512-AFuojMQTxAz75Fo8idVcqoQWEHIXFRbOc1TrVcFSgCZtQfSdc1RXgB3tjOn/krRHENUB4j00bfGjyl2mJrU37A==}
+     engines: {node: '>=18'}
+     cpu: [arm64]
+     os: [openbsd]
+ 
+-  '@esbuild/openbsd-x64@0.28.1':
+-    resolution: {integrity: sha512-i/ZLIOafE0Z8cI/XANJAixoJL/uRAoS2xOA3rb0xN+KK0K177cMAsQYkzHtBrtMXAKuAc7HGgcWiZ/sRC1Nxgw==}
++  '@esbuild/openbsd-x64@0.25.4':
++    resolution: {integrity: sha512-xAGGhyOQ9Otm1Xu8NT1ifGLnA6M3sJxZ6ixylb+vIUVzvvd6GOALpwQrYrtlPouMqd/vSbgehz6HaVk4+7Afhw==}
+     engines: {node: '>=18'}
+     cpu: [x64]
+     os: [openbsd]
+ 
+-  '@esbuild/openharmony-arm64@0.28.1':
+-    resolution: {integrity: sha512-ge+Z7EXFNt2BO1oAMsVpiQ8EwndV9i1xXerAeTIK7AtPs3bKFXQM7nlRxDSIUIMeueR1CNXxqztLzdNeReKBJg==}
++  '@esbuild/openbsd-x64@0.27.3':
++    resolution: {integrity: sha512-DnW2sRrBzA+YnE70LKqnM3P+z8vehfJWHXECbwBmH/CU51z6FiqTQTHFenPlHmo3a8UgpLyH3PT+87OViOh1AQ==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [openbsd]
++
++  '@esbuild/openbsd-x64@0.27.7':
++    resolution: {integrity: sha512-+A1NJmfM8WNDv5CLVQYJ5PshuRm/4cI6WMZRg1by1GwPIQPCTs1GLEUHwiiQGT5zDdyLiRM/l1G0Pv54gvtKIg==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [openbsd]
++
++  '@esbuild/openharmony-arm64@0.27.3':
++    resolution: {integrity: sha512-NinAEgr/etERPTsZJ7aEZQvvg/A6IsZG/LgZy+81wON2huV7SrK3e63dU0XhyZP4RKGyTm7aOgmQk0bGp0fy2g==}
+     engines: {node: '>=18'}
+     cpu: [arm64]
+     os: [openharmony]
+ 
+-  '@esbuild/sunos-x64@0.28.1':
+-    resolution: {integrity: sha512-BEjgtECkL3vY+SaSQ6nzVfiALUeFxpawyp8Jmf5PtYhf1Ug40N1h/hxlhts+f1FvSvarEigdxS3BlSMI2PJLcQ==}
++  '@esbuild/openharmony-arm64@0.27.7':
++    resolution: {integrity: sha512-+KrvYb/C8zA9CU/g0sR6w2RBw7IGc5J2BPnc3dYc5VJxHCSF1yNMxTV5LQ7GuKteQXZtspjFbiuW5/dOj7H4Yw==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [openharmony]
++
++  '@esbuild/sunos-x64@0.25.4':
++    resolution: {integrity: sha512-Mw+tzy4pp6wZEK0+Lwr76pWLjrtjmJyUB23tHKqEDP74R3q95luY/bXqXZeYl4NYlvwOqoRKlInQialgCKy67Q==}
+     engines: {node: '>=18'}
+     cpu: [x64]
+     os: [sunos]
+ 
+-  '@esbuild/win32-arm64@0.28.1':
+-    resolution: {integrity: sha512-lCv9eK/H6ZJWbE7bh2nw54CZ9M2nupBxJcTsdk/QQnWkdSjKGuxmmH8/GWrlT1eMmZfn4dGcCjRte397WqfQXA==}
++  '@esbuild/sunos-x64@0.27.3':
++    resolution: {integrity: sha512-PanZ+nEz+eWoBJ8/f8HKxTTD172SKwdXebZ0ndd953gt1HRBbhMsaNqjTyYLGLPdoWHy4zLU7bDVJztF5f3BHA==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [sunos]
++
++  '@esbuild/sunos-x64@0.27.7':
++    resolution: {integrity: sha512-ikktIhFBzQNt/QDyOL580ti9+5mL/YZeUPKU2ivGtGjdTYoqz6jObj6nOMfhASpS4GU4Q/Clh1QtxWAvcYKamA==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [sunos]
++
++  '@esbuild/win32-arm64@0.25.4':
++    resolution: {integrity: sha512-AVUP428VQTSddguz9dO9ngb+E5aScyg7nOeJDrF1HPYu555gmza3bDGMPhmVXL8svDSoqPCsCPjb265yG/kLKQ==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [win32]
++
++  '@esbuild/win32-arm64@0.27.3':
++    resolution: {integrity: sha512-B2t59lWWYrbRDw/tjiWOuzSsFh1Y/E95ofKz7rIVYSQkUYBjfSgf6oeYPNWHToFRr2zx52JKApIcAS/D5TUBnA==}
++    engines: {node: '>=18'}
++    cpu: [arm64]
++    os: [win32]
++
++  '@esbuild/win32-arm64@0.27.7':
++    resolution: {integrity: sha512-7yRhbHvPqSpRUV7Q20VuDwbjW5kIMwTHpptuUzV+AA46kiPze5Z7qgt6CLCK3pWFrHeNfDd1VKgyP4O+ng17CA==}
+     engines: {node: '>=18'}
+     cpu: [arm64]
+     os: [win32]
+ 
+-  '@esbuild/win32-ia32@0.28.1':
+-    resolution: {integrity: sha512-zvb/mB2bSCoJOpoCBgYKKpX6YM6mJBlBUVUtVj41DlZJVEB6/0CKlRYxP5wWl1C1ILiCoAU5wZZ4q1P3qeS6Eg==}
++  '@esbuild/win32-ia32@0.25.4':
++    resolution: {integrity: sha512-i1sW+1i+oWvQzSgfRcxxG2k4I9n3O9NRqy8U+uugaT2Dy7kLO9Y7wI72haOahxceMX8hZAzgGou1FhndRldxRg==}
++    engines: {node: '>=18'}
++    cpu: [ia32]
++    os: [win32]
++
++  '@esbuild/win32-ia32@0.27.3':
++    resolution: {integrity: sha512-QLKSFeXNS8+tHW7tZpMtjlNb7HKau0QDpwm49u0vUp9y1WOF+PEzkU84y9GqYaAVW8aH8f3GcBck26jh54cX4Q==}
+     engines: {node: '>=18'}
+     cpu: [ia32]
+     os: [win32]
+ 
+-  '@esbuild/win32-x64@0.28.1':
+-    resolution: {integrity: sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A==}
++  '@esbuild/win32-ia32@0.27.7':
++    resolution: {integrity: sha512-SmwKXe6VHIyZYbBLJrhOoCJRB/Z1tckzmgTLfFYOfpMAx63BJEaL9ExI8x7v0oAO3Zh6D/Oi1gVxEYr5oUCFhw==}
++    engines: {node: '>=18'}
++    cpu: [ia32]
++    os: [win32]
++
++  '@esbuild/win32-x64@0.25.4':
++    resolution: {integrity: sha512-nOT2vZNw6hJ+z43oP1SPea/G/6AbN6X+bGNhNuq8NtRHy4wsMhw765IKLNmnjek7GvjWBYQ8Q5VBoYTFg9y1UQ==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [win32]
++
++  '@esbuild/win32-x64@0.27.3':
++    resolution: {integrity: sha512-4uJGhsxuptu3OcpVAzli+/gWusVGwZZHTlS63hh++ehExkVT8SgiEf7/uC/PclrPPkLhZqGgCTjd0VWLo6xMqA==}
++    engines: {node: '>=18'}
++    cpu: [x64]
++    os: [win32]
++
++  '@esbuild/win32-x64@0.27.7':
++    resolution: {integrity: sha512-56hiAJPhwQ1R4i+21FVF7V8kSD5zZTdHcVuRFMW0hn753vVfQN8xlx4uOPT4xoGH0Z/oVATuR82AiqSTDIpaHg==}
+     engines: {node: '>=18'}
+     cpu: [x64]
+     os: [win32]
+@@ -1629,105 +1886,89 @@ packages:
+     resolution: {integrity: sha512-excjX8DfsIcJ10x1Kzr4RcWe1edC9PquDRRPx3YVCvQv+U5p7Yin2s32ftzikXojb1PIFc/9Mt28/y+iRklkrw==}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-libvips-linux-arm@1.2.4':
+     resolution: {integrity: sha512-bFI7xcKFELdiNCVov8e44Ia4u2byA+l3XtsAj+Q8tfCwO6BQ8iDojYdvoPMqsKDkuoOo+X6HZA0s0q11ANMQ8A==}
+     cpu: [arm]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-libvips-linux-ppc64@1.2.4':
+     resolution: {integrity: sha512-FMuvGijLDYG6lW+b/UvyilUWu5Ayu+3r2d1S8notiGCIyYU/76eig1UfMmkZ7vwgOrzKzlQbFSuQfgm7GYUPpA==}
+     cpu: [ppc64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-libvips-linux-riscv64@1.2.4':
+     resolution: {integrity: sha512-oVDbcR4zUC0ce82teubSm+x6ETixtKZBh/qbREIOcI3cULzDyb18Sr/Wcyx7NRQeQzOiHTNbZFF1UwPS2scyGA==}
+     cpu: [riscv64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-libvips-linux-s390x@1.2.4':
+     resolution: {integrity: sha512-qmp9VrzgPgMoGZyPvrQHqk02uyjA0/QrTO26Tqk6l4ZV0MPWIW6LTkqOIov+J1yEu7MbFQaDpwdwJKhbJvuRxQ==}
+     cpu: [s390x]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-libvips-linux-x64@1.2.4':
+     resolution: {integrity: sha512-tJxiiLsmHc9Ax1bz3oaOYBURTXGIRDODBqhveVHonrHJ9/+k89qbLl0bcJns+e4t4rvaNBxaEZsFtSfAdquPrw==}
+     cpu: [x64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-libvips-linuxmusl-arm64@1.2.4':
+     resolution: {integrity: sha512-FVQHuwx1IIuNow9QAbYUzJ+En8KcVm9Lk5+uGUQJHaZmMECZmOlix9HnH7n1TRkXMS0pGxIJokIVB9SuqZGGXw==}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@img/sharp-libvips-linuxmusl-x64@1.2.4':
+     resolution: {integrity: sha512-+LpyBk7L44ZIXwz/VYfglaX/okxezESc6UxDSoyo2Ks6Jxc4Y7sGjpgU9s4PMgqgjj1gZCylTieNamqA1MF7Dg==}
+     cpu: [x64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@img/sharp-linux-arm64@0.34.5':
+     resolution: {integrity: sha512-bKQzaJRY/bkPOXyKx5EVup7qkaojECG6NLYswgktOZjaXecSAeCWiZwwiFf3/Y+O1HrauiE3FVsGxFg8c24rZg==}
+     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-linux-arm@0.34.5':
+     resolution: {integrity: sha512-9dLqsvwtg1uuXBGZKsxem9595+ujv0sJ6Vi8wcTANSFpwV/GONat5eCkzQo/1O6zRIkh0m/8+5BjrRr7jDUSZw==}
+     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
+     cpu: [arm]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-linux-ppc64@0.34.5':
+     resolution: {integrity: sha512-7zznwNaqW6YtsfrGGDA6BRkISKAAE1Jo0QdpNYXNMHu2+0dTrPflTLNkpc8l7MUP5M16ZJcUvysVWWrMefZquA==}
+     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
+     cpu: [ppc64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-linux-riscv64@0.34.5':
+     resolution: {integrity: sha512-51gJuLPTKa7piYPaVs8GmByo7/U7/7TZOq+cnXJIHZKavIRHAP77e3N2HEl3dgiqdD/w0yUfiJnII77PuDDFdw==}
+     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
+     cpu: [riscv64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-linux-s390x@0.34.5':
+     resolution: {integrity: sha512-nQtCk0PdKfho3eC5MrbQoigJ2gd1CgddUMkabUj+rBevs8tZ2cULOx46E7oyX+04WGfABgIwmMC0VqieTiR4jg==}
+     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
+     cpu: [s390x]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-linux-x64@0.34.5':
+     resolution: {integrity: sha512-MEzd8HPKxVxVenwAa+JRPwEC7QFjoPWuS5NZnBt6B3pu7EG2Ge0id1oLHZpPJdn3OQK+BQDiw9zStiHBTJQQQQ==}
+     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
+     cpu: [x64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@img/sharp-linuxmusl-arm64@0.34.5':
+     resolution: {integrity: sha512-fprJR6GtRsMt6Kyfq44IsChVZeGN97gTD331weR1ex1c1rypDEABN6Tm2xa1wE6lYb5DdEnk03NZPqA7Id21yg==}
+     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@img/sharp-linuxmusl-x64@0.34.5':
+     resolution: {integrity: sha512-Jg8wNT1MUzIvhBFxViqrEhWDGzqymo3sV7z7ZsaWbZNDLXRJZoRGrjulp60YYtV4wfY8VIKcWidjojlLcWrd8Q==}
+     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
+     cpu: [x64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@img/sharp-wasm32@0.34.5':
+     resolution: {integrity: sha512-OdWTEiVkY2PHwqkbBI8frFxQQFekHaSSkUIJkwzclWZe64O1X4UlUjqqqLaPbUpMOQk6FBu/HtlGXNblIs0huw==}
+@@ -1886,6 +2127,10 @@ packages:
+       '@types/node':
+         optional: true
+ 
++  '@isaacs/cliui@8.0.2':
++    resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
++    engines: {node: '>=12'}
++
+   '@isaacs/cliui@9.0.0':
+     resolution: {integrity: sha512-AokJm4tuBHillT+FpMtxQ60n8ObyXBatq7jD2/JA9dxbDDokKQm8KMht5ibGzLVU9IJDIKK4TPKgMHEYMn3lMg==}
+     engines: {node: '>=18'}
+@@ -1972,35 +2217,30 @@ packages:
+     engines: {node: '>= 10'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@napi-rs/canvas-linux-arm64-musl@0.1.100':
+     resolution: {integrity: sha512-K3mDW66N+xT2/V439u1alFANiBUjdEx2gLiNYnCmUsva5jZMxWTjafBYwTzYK+EMFMHrUoabuU+T1BIP5CgbYQ==}
+     engines: {node: '>= 10'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@napi-rs/canvas-linux-riscv64-gnu@0.1.100':
+     resolution: {integrity: sha512-mooqUBTIsccZpnoQC4NgrC1v6C1vof39etLNMnBwCY+p0gajWJvAHLGQ6g/gGyS5YrpDW+GefSN4+Cvcr08UWw==}
+     engines: {node: '>= 10'}
+     cpu: [riscv64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@napi-rs/canvas-linux-x64-gnu@0.1.100':
+     resolution: {integrity: sha512-1eCvkDCazm7FFhsT7DfGOdSaHgZVK3bt/dSBl5EWHOWmnz+I7j8tPseJqqD81NF+MH21jKUK4wQSDjN0mdhnTg==}
+     engines: {node: '>= 10'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@napi-rs/canvas-linux-x64-musl@0.1.100':
+     resolution: {integrity: sha512-20arT6lnI19S68qNlii73TSEDbECNgzMz2EpldC1V3mZFuRkeujXkcebRk0LRJe9SEUAooYiLokfMViY8IX7yA==}
+     engines: {node: '>= 10'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@napi-rs/canvas-win32-arm64-msvc@0.1.100':
+     resolution: {integrity: sha512-DZFFT1wIAg37LJw37yhMRFfjATd3vTQzjZ1Yki8u2vhO6Hi5VE6BVaGQ1aaDu7xb4iMErz+9EOwjpS7xcxFeBw==}
+@@ -2024,8 +2264,8 @@ packages:
+   '@napi-rs/wasm-runtime@1.1.4':
+     resolution: {integrity: sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow==}
+     peerDependencies:
+-      '@emnapi/core': 1.8.1
+-      '@emnapi/runtime': 1.8.1
++      '@emnapi/core': ^1.7.1
++      '@emnapi/runtime': ^1.7.1
+ 
+   '@next/bundle-analyzer@15.5.18':
+     resolution: {integrity: sha512-v5/UNFwYbBlRQg/Bt+wU65XuxCxPu1AeCOI6s4s6Cludsj7FdVO9E9uzr7GIj8OykSrYtGuEQAUX0Ulje8W2yw==}
+@@ -2050,28 +2290,24 @@ packages:
+     engines: {node: '>= 10'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@next/swc-linux-arm64-musl@16.2.6':
+     resolution: {integrity: sha512-URUTu1+dMkxJsPFgm+OeEvq9wf5sujw0EvgYy80TDGHTSLTnIHeqb0Eu8A3sC95IRgjejQL+kC4mw+4yPxiAXA==}
+     engines: {node: '>= 10'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@next/swc-linux-x64-gnu@16.2.6':
+     resolution: {integrity: sha512-DOj182mPV8G3UkrayLoREM5YEYI+Dk5wv7Ox9xl1fFibAELEsFD0lDPfHIeILlutMMfdyhlzYPELG3peuKaurw==}
+     engines: {node: '>= 10'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@next/swc-linux-x64-musl@16.2.6':
+     resolution: {integrity: sha512-HKQ5SP/V/ub73UvF7n/zeJlxk2kLmtL7Wzrg4WfmkjmNos5onJ2tKu7yZOPdL18A6Svfn3max29ym+ry7NkK4g==}
+     engines: {node: '>= 10'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@next/swc-win32-arm64-msvc@16.2.6':
+     resolution: {integrity: sha512-LZXpTlPyS5v7HhSmnvsLGP3iIYgYOBnc8r8ArlT55sGHV89bR2HlDdBjWQ+PY6SJMmk8TuVGFuxalnP3k/0Dwg==}
+@@ -2149,8 +2385,14 @@ packages:
+     resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
+     engines: {node: '>=8.0.0'}
+ 
+-  '@opentelemetry/core@2.8.0':
+-    resolution: {integrity: sha512-hd1Lfh8p545nNz+jq1Ejfz+Mn1hyLuxYn1YzTfFNrxr8urEWMNQLPf1Th8kjOH+HxwawCrtgBp8JpBUR4ZSgww==}
++  '@opentelemetry/core@2.2.0':
++    resolution: {integrity: sha512-FuabnnUm8LflnieVxs6eP7Z383hgQU4W1e3KJS6aOG3RxWxcHyBxH8fDMHNgu/gFx/M2jvTOW/4/PHhLz6bjWw==}
++    engines: {node: ^18.19.0 || >=20.6.0}
++    peerDependencies:
++      '@opentelemetry/api': '>=1.0.0 <1.10.0'
++
++  '@opentelemetry/core@2.7.1':
++    resolution: {integrity: sha512-QAqIj32AtK6+pEVNG7EOVxHdE06RP+FM5qpiEJ4RtDcFIqKUZHYhl7/7UY5efhwmwNAg7j8QbJVBLxMerc0+gw==}
+     engines: {node: ^18.19.0 || >=20.6.0}
+     peerDependencies:
+       '@opentelemetry/api': '>=1.0.0 <1.10.0'
+@@ -2207,6 +2449,10 @@ packages:
+     resolution: {integrity: sha512-cifvXDhcqMwwTlTK04GBNeIe7yyo28Mfby85QXFe1Yk8nmi36Ab/5UQwptOx84SsoGNRg+EVSjwzfSZMy6pmlw==}
+     engines: {node: '>=14'}
+ 
++  '@pkgjs/parseargs@0.11.0':
++    resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
++    engines: {node: '>=14'}
++
+   '@playwright/test@1.60.0':
+     resolution: {integrity: sha512-O71yZIbAh/PxDMNGns37GHBIfrVkEVyn+AXyIa5dOTfb4/xNvRWV+Vv/NMbNCtODB/pO7vLlF2OTmMVLhmr7Ag==}
+     engines: {node: '>=18'}
+@@ -2727,7 +2973,7 @@ packages:
+     resolution: {integrity: sha512-tgg6b91pAybXHJQMAAwW9VuWBO6Thi+q7BCNARLwSqlmsHz0XYURtGvh/AuwSADXSI4h/2uHbs7s4FzlZDGSGA==}
+     engines: {node: '>=14.0.0'}
+     peerDependencies:
+-      rollup: '>=4.59.0'
++      rollup: ^2.78.0||^3.0.0||^4.0.0
+     peerDependenciesMeta:
+       rollup:
+         optional: true
+@@ -2736,7 +2982,7 @@ packages:
+     resolution: {integrity: sha512-XHeJC5Bgvs8LfukDwWZp7yeqin6ns8RTl2B9avbejt6tZqsqvVoWI7ZTQrcNsfKEDWBTnTxM8nMDkO2IFFbd0A==}
+     engines: {node: '>=14.0.0'}
+     peerDependencies:
+-      rollup: '>=4.59.0'
++      rollup: ^2.0.0||^3.0.0||^4.0.0
+     peerDependenciesMeta:
+       rollup:
+         optional: true
+@@ -2745,7 +2991,7 @@ packages:
+     resolution: {integrity: sha512-5EdhGZtnu3V88ces7s53hhfK5KSASnJZv8Lulpc04cWO3REESroJXg73DFsOmgbU2BhwV0E20bu2IDZb3VKW4Q==}
+     engines: {node: '>=14.0.0'}
+     peerDependencies:
+-      rollup: '>=4.59.0'
++      rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
+     peerDependenciesMeta:
+       rollup:
+         optional: true
+@@ -2784,79 +3030,66 @@ packages:
+     resolution: {integrity: sha512-DV6fJoxEYWJOvaZIsok7KrYl0tPvga5OZ2yvKHNNYyk/2roMLqQAbGhr78EQ5YhHpnhLKJD3S1WFusAkmUuV5g==}
+     cpu: [arm]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@rollup/rollup-linux-arm-musleabihf@4.60.3':
+     resolution: {integrity: sha512-mQKoJAzvuOs6F+TZybQO4GOTSMUu7v0WdxEk24krQ/uUxXoPTtHjuaUuPmFhtBcM4K0ons8nrE3JyhTuCFtT/w==}
+     cpu: [arm]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@rollup/rollup-linux-arm64-gnu@4.60.3':
+     resolution: {integrity: sha512-Whjj2qoiJ6+OOJMGptTYazaJvjOJm+iKHpXQM1P3LzGjt7Ff++Tp7nH4N8J/BUA7R9IHfDyx4DJIflifwnbmIA==}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@rollup/rollup-linux-arm64-musl@4.60.3':
+     resolution: {integrity: sha512-4YTNHKqGng5+yiZt3mg77nmyuCfmNfX4fPmyUapBcIk+BdwSwmCWGXOUxhXbBEkFHtoN5boLj/5NON+u5QC9tg==}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@rollup/rollup-linux-loong64-gnu@4.60.3':
+     resolution: {integrity: sha512-SU3kNlhkpI4UqlUc2VXPGK9o886ZsSeGfMAX2ba2b8DKmMXq4AL7KUrkSWVbb7koVqx41Yczx6dx5PNargIrEA==}
+     cpu: [loong64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@rollup/rollup-linux-loong64-musl@4.60.3':
+     resolution: {integrity: sha512-6lDLl5h4TXpB1mTf2rQWnAk/LcXrx9vBfu/DT5TIPhvMhRWaZ5MxkIc8u4lJAmBo6klTe1ywXIUHFjylW505sg==}
+     cpu: [loong64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@rollup/rollup-linux-ppc64-gnu@4.60.3':
+     resolution: {integrity: sha512-BMo8bOw8evlup/8G+cj5xWtPyp93xPdyoSN16Zy90Q2QZ0ZYRhCt6ZJSwbrRzG9HApFabjwj2p25TUPDWrhzqQ==}
+     cpu: [ppc64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@rollup/rollup-linux-ppc64-musl@4.60.3':
+     resolution: {integrity: sha512-E0L8X1dZN1/Rph+5VPF6Xj2G7JJvMACVXtamTJIDrVI44Y3K+G8gQaMEAavbqCGTa16InptiVrX6eM6pmJ+7qA==}
+     cpu: [ppc64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@rollup/rollup-linux-riscv64-gnu@4.60.3':
+     resolution: {integrity: sha512-oZJ/WHaVfHUiRAtmTAeo3DcevNsVvH8mbvodjZy7D5QKvCefO371SiKRpxoDcCxB3PTRTLayWBkvmDQKTcX/sw==}
+     cpu: [riscv64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@rollup/rollup-linux-riscv64-musl@4.60.3':
+     resolution: {integrity: sha512-Dhbyh7j9FybM3YaTgaHmVALwA8AkUwTPccyCQ79TG9AJUsMQqgN1DDEZNr4+QUfwiWvLDumW5vdwzoeUF+TNxQ==}
+     cpu: [riscv64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@rollup/rollup-linux-s390x-gnu@4.60.3':
+     resolution: {integrity: sha512-cJd1X5XhHHlltkaypz1UcWLA8AcoIi1aWhsvaWDskD1oz2eKCypnqvTQ8ykMNI0RSmm7NkTdSqSSD7zM0xa6Ig==}
+     cpu: [s390x]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@rollup/rollup-linux-x64-gnu@4.60.3':
+     resolution: {integrity: sha512-DAZDBHQfG2oQuhY7mc6I3/qB4LU2fQCjRvxbDwd/Jdvb9fypP4IJ4qmtu6lNjes6B531AI8cg1aKC2di97bUxA==}
+     cpu: [x64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@rollup/rollup-linux-x64-musl@4.60.3':
+     resolution: {integrity: sha512-cRxsE8c13mZOh3vP+wLDxpQBRrOHDIGOWyDL93Sy0Ga8y515fBcC2pjUfFwUe5T7tqvTvWbCpg1URM/AXdWIXA==}
+     cpu: [x64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@rollup/rollup-openbsd-x64@4.60.3':
+     resolution: {integrity: sha512-QaWcIgRxqEdQdhJqW4DJctsH6HCmo5vHxY0krHSX4jMtOqfzC+dqDGuHM87bu4H8JBeibWx7jFz+h6/4C8wA5Q==}
+@@ -3254,35 +3487,30 @@ packages:
+     engines: {node: '>= 10'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@tauri-apps/cli-linux-arm64-musl@2.10.1':
+     resolution: {integrity: sha512-MIj78PDDGjkg3NqGptDOGgfXks7SYJwhiMh8SBoZS+vfdz7yP5jN18bNaLnDhsVIPARcAhE1TlsZe/8Yxo2zqg==}
+     engines: {node: '>= 10'}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@tauri-apps/cli-linux-riscv64-gnu@2.10.1':
+     resolution: {integrity: sha512-X0lvOVUg8PCVaoEtEAnpxmnkwlE1gcMDTqfhbefICKDnOTJ5Est3qL0SrWxizDackIOKBcvtpejrSiVpuJI1kw==}
+     engines: {node: '>= 10'}
+     cpu: [riscv64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@tauri-apps/cli-linux-x64-gnu@2.10.1':
+     resolution: {integrity: sha512-2/12bEzsJS9fAKybxgicCDFxYD1WEI9kO+tlDwX5znWG2GwMBaiWcmhGlZ8fi+DMe9CXlcVarMTYc0L3REIRxw==}
+     engines: {node: '>= 10'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@tauri-apps/cli-linux-x64-musl@2.10.1':
+     resolution: {integrity: sha512-Y8J0ZzswPz50UcGOFuXGEMrxbjwKSPgXftx5qnkuMs2rmwQB5ssvLb6tn54wDSYxe7S6vlLob9vt0VKuNOaCIQ==}
+     engines: {node: '>= 10'}
+     cpu: [x64]
+     os: [linux]
+-    libc: [musl]
+ 
+   '@tauri-apps/cli-win32-arm64-msvc@2.10.1':
+     resolution: {integrity: sha512-iSt5B86jHYAPJa/IlYw++SXtFPGnWtFJriHn7X0NFBVunF6zu9+/zOn8OgqIWSl8RgzhLGXQEEtGBdR4wzpVgg==}
+@@ -3389,13 +3617,11 @@ packages:
+     resolution: {integrity: sha512-a5OkedE0AissAbjocvDCsmcQc4gtnVWpwbcbeJ6EoC3oJApK4AzX6vzCl8W4oA7k4cn/V9U4L1QGjWZlLcjePg==}
+     cpu: [arm64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@tursodatabase/database-linux-x64-gnu@0.6.0-pre.28':
+     resolution: {integrity: sha512-raEgDNNUxZn2jKX0jV6XEozyWt+3wnazstPLx+YhCU3vSGEui4xnD/ehulCRPCKbybOAFLpmeLvkolc29KFLww==}
+     cpu: [x64]
+     os: [linux]
+-    libc: [glibc]
+ 
+   '@tursodatabase/database-win32-x64-msvc@0.6.0-pre.28':
+     resolution: {integrity: sha512-BrGP+LtkvDR5hxb8a98ltQ9KZgLSn/njLEvDIL/D7OJY811EVcKVtw6dgVDXoQccv3w/NfEGP8MB4kHC4A3dIA==}
+@@ -3759,7 +3985,7 @@ packages:
+     resolution: {integrity: sha512-YmKkfhOAi3wsB1PhJq5Scj3GXMn3WvtQ/JC0xoopuHoXSdmtdStOpFrYaT1kie2YgFBcIe64ROzMYRjCrYOdYw==}
+     engines: {node: ^20.19.0 || >=22.12.0}
+     peerDependencies:
+-      vite: '>=7.3.5 <8'
++      vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+ 
+   '@vitejs/plugin-rsc@0.5.26':
+     resolution: {integrity: sha512-T8W8ODEutblw9qXQB512LDPyv1tAbJRD/Gf0QEGsAoydl4nxEtIrghnhoI9oLY9R+7aw+cLk1ZEltxWHWf4aHw==}
+@@ -3767,7 +3993,7 @@ packages:
+       react: '*'
+       react-dom: '*'
+       react-server-dom-webpack: '*'
+-      vite: '>=7.3.5 <8'
++      vite: '*'
+     peerDependenciesMeta:
+       react-server-dom-webpack:
+         optional: true
+@@ -3805,7 +4031,7 @@ packages:
+     resolution: {integrity: sha512-EVkXzBjrPGM+cK8/ANWgBrkUCfJfb38/EfTSO8h7pWvKkyPkpWxvR7BkD2MyItMF62C97zAEoqdpUixwR/e+Rw==}
+     peerDependencies:
+       msw: ^2.4.9
+-      vite: '>=7.3.5 <8'
++      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+     peerDependenciesMeta:
+       msw:
+         optional: true
+@@ -4217,7 +4443,7 @@ packages:
+     engines: {node: ^10 || ^12 || >=14}
+     hasBin: true
+     peerDependencies:
+-      postcss: 8.5.14
++      postcss: ^8.1.0
+ 
+   aws4fetch@1.0.20:
+     resolution: {integrity: sha512-/djoAN709iY65ETD6LKCtyyEI04XIBP5xVvfmNxsEP0uJB5tyaGBztSryRr4HqMStr9R06PisQE7m9zDTXKu6g==}
+@@ -5033,6 +5259,9 @@ packages:
+   duplexer@0.1.2:
+     resolution: {integrity: sha512-jtD6YG370ZCIi/9GTaJKQxWTZD045+4R4hTk/x1UyoqadyJ9x9CgSi1RlVDQF8U2sxLLSnFkCaMihqljHIWgMg==}
+ 
++  eastasianwidth@0.2.0:
++    resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
++
+   easy-table@1.2.0:
+     resolution: {integrity: sha512-OFzVOv03YpvtcWGe5AayU5G2hgybsg3iqA6drU8UaoZyB9jLGMTrz9+asnLp/E+6qPh88yEI1gvyZFZ41dmgww==}
+ 
+@@ -5063,6 +5292,19 @@ packages:
+   electron-to-chromium@1.5.353:
+     resolution: {integrity: sha512-kOrWphBi8TOZyiJZqsgqIle0lw+tzmnQK83pV9dZUd01Nm2POECSyFQMAuarzZdYqQW7FH9RaYOuaRo3h+bQ3w==}
+ 
++  embla-carousel-react@8.6.0:
++    resolution: {integrity: sha512-0/PjqU7geVmo6F734pmPqpyHqiM99olvyecY7zdweCw+6tKEXnrE90pBiBbMMU8s5tICemzpQ3hi5EpxzGW+JA==}
++    peerDependencies:
++      react: ^16.8.0 || ^17.0.1 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
++
++  embla-carousel-reactive-utils@8.6.0:
++    resolution: {integrity: sha512-fMVUDUEx0/uIEDM0Mz3dHznDhfX+znCCDCeIophYb1QGVM7YThSWX+wz11zlYwWFOr74b4QLGg0hrGPJeG2s4A==}
++    peerDependencies:
++      embla-carousel: 8.6.0
++
++  embla-carousel@8.6.0:
++    resolution: {integrity: sha512-SjWyZBHJPbqxHOzckOfo8lHisEaJWmwd23XppYFYVh10bU66/Pn5tkVkbkCMZVdbUE5eTCI2nD8OyIP4Z+uwkA==}
++
+   emoji-regex-xs@2.0.1:
+     resolution: {integrity: sha512-1QFuh8l7LqUcKe24LsPUNzjrzJQ7pgRwp1QMcZ5MX6mFplk2zQ08NVCM84++1cveaUUYtcCYHmeFEuNg16sU4g==}
+     engines: {node: '>=10.0.0'}
+@@ -5073,6 +5315,9 @@ packages:
+   emoji-regex@8.0.0:
+     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
+ 
++  emoji-regex@9.2.2:
++    resolution: {integrity: sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==}
++
+   emojis-list@3.0.0:
+     resolution: {integrity: sha512-/kyM18EfinwXZbno9FyUGeFh87KC8HRQBQGildHZbEuRyWFOmv1U10o9BBp8XVZDVNNuQKyIGIu5ZYAAXJ0V2Q==}
+     engines: {node: '>= 4'}
+@@ -5157,8 +5402,18 @@ packages:
+   es-toolkit@1.46.1:
+     resolution: {integrity: sha512-5eNtXOs3tbfxXOj04tjjseeWkRWaoCjdEI+96DgwzZoe6c9juL49pXlzAFTI72aWC9Y8p7168g6XIKjh7k6pyQ==}
+ 
+-  esbuild@0.28.1:
+-    resolution: {integrity: sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==}
++  esbuild@0.25.4:
++    resolution: {integrity: sha512-8pgjLUcUjcgDg+2Q4NYXnPbo/vncAY4UmyaCm0jZevERqCHZIaWwdJHkf8XQtu4AxSKCdvrUbT0XUr1IdZzI8Q==}
++    engines: {node: '>=18'}
++    hasBin: true
++
++  esbuild@0.27.3:
++    resolution: {integrity: sha512-8VwMnyGCONIs6cWue2IdpHxHnAjzxnw2Zr7MkVxB2vjmQ2ivqGFb4LEG3SMnv0Gb2F/G/2yA8zUaiL1gywDCCg==}
++    engines: {node: '>=18'}
++    hasBin: true
++
++  esbuild@0.27.7:
++    resolution: {integrity: sha512-IxpibTjyVnmrIQo5aqNpCgoACA/dTKLTlhMHihVHhdkxKyPO1uBBthumT0rdHmcsk9uMonIWS0m4FljWzILh3w==}
+     engines: {node: '>=18'}
+     hasBin: true
+ 
+@@ -5338,7 +5593,7 @@ packages:
+     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
+     engines: {node: '>=12.0.0'}
+     peerDependencies:
+-      picomatch: '>=4.0.4'
++      picomatch: ^3 || ^4
+     peerDependenciesMeta:
+       picomatch:
+         optional: true
+@@ -5431,6 +5686,9 @@ packages:
+     resolution: {integrity: sha512-UTOY+59K6IA94tec8Wjqm0FSh5OVudGNB0NL/P6fB3HiE3bYOY3VYBGijsnOHNkQSwC1FKkU77pmq7xp9CskLw==}
+     engines: {node: '>=10.13.0'}
+ 
++  fs.realpath@1.0.0:
++    resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
++
+   fsevents@2.3.2:
+     resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+@@ -5526,6 +5784,11 @@ packages:
+     resolution: {integrity: sha512-ZyqlgowMbfj2NPjxaZZ/EtsXlOch28FRXgMd64vqZWk1bT9+wvSRLYD1om9M7QfQru51zJPAT17qXm4/zd+9QA==}
+     engines: {node: '>= 0.10'}
+ 
++  glob@10.5.0:
++    resolution: {integrity: sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==}
++    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
++    hasBin: true
++
+   glob@12.0.0:
+     resolution: {integrity: sha512-5Qcll1z7IKgHr5g485ePDdHcNQY0k2dtv/bjYy0iuyGxQw2qSOiiXUXJ+AYQpg3HNoUMHqAruX478Jeev7UULw==}
+     engines: {node: 20 || >=22}
+@@ -5535,6 +5798,16 @@ packages:
+     resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
+     engines: {node: 18 || 20 || >=22}
+ 
++  glob@8.1.0:
++    resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
++    engines: {node: '>=12'}
++    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
++
++  glob@9.3.5:
++    resolution: {integrity: sha512-e1LleDykUz2Iu+MTYdkSsuWX8lvAjAcs0Xef0lNIu0S2wOAzuTxCJtcd9S3cijlwYF18EsU3rzb8jPVobxDh9Q==}
++    engines: {node: '>=16 || 14 >=14.17'}
++    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
++
+   globals@15.15.0:
+     resolution: {integrity: sha512-7ACyT3wmyp3I61S4fG682L0VA2RGD9otkqGJIwNUMF1SWUombIIk+af1unuDYgMm082aHYwD+mzJvv9Iu8dsgg==}
+     engines: {node: '>=18'}
+@@ -5773,6 +6046,10 @@ packages:
+   import-meta-resolve@4.2.0:
+     resolution: {integrity: sha512-Iqv2fzaTQN28s/FwZAoFq0ZSs/7hMAHJVX+w8PZl3cY19Pxk6jFFalxQoIfW2826i/fDLXv8IiEZRIT0lDuWcg==}
+ 
++  inflight@1.0.6:
++    resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
++    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
++
+   inherits@2.0.4:
+     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+ 
+@@ -5926,7 +6203,7 @@ packages:
+   isomorphic-ws@5.0.0:
+     resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
+     peerDependencies:
+-      ws: '>=8.21.0'
++      ws: '*'
+ 
+   istanbul-lib-coverage@3.2.2:
+     resolution: {integrity: sha512-O8dpsF+r0WV/8MNRKfnmrtCWhuKjxrq2w+jpzBL5UZKTi2LeVWnWOmWRxFlesJONmc+wLAGvKQZEOanko0LFTg==}
+@@ -5940,6 +6217,9 @@ packages:
+     resolution: {integrity: sha512-HGYWWS/ehqTV3xN10i23tkPkpH46MLCIMFNCaaKNavAXTF1RkqxawEPtnjnGZ6XKSInBKkiOA5BKS+aZiY3AvA==}
+     engines: {node: '>=8'}
+ 
++  jackspeak@3.4.3:
++    resolution: {integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==}
++
+   jackspeak@4.2.3:
+     resolution: {integrity: sha512-ykkVRwrYvFm1nb2AJfKKYPr0emF6IiXDYUaFx4Zn9ZuIH7MrzEZ3sD5RlqGXNRpHtvUHJyOnCEFxOlNDtGo7wg==}
+     engines: {node: 20 || >=22}
+@@ -6496,9 +6776,21 @@ packages:
+     resolution: {integrity: sha512-7o1wEA2RyMP7Iu7GNba9vc0RWWGACJOCZBJX2GJWip0ikV+wcOsgVuY9uE8CPiyQhkGFSlhuSkZPavN7u1c2Fw==}
+     engines: {node: '>=10'}
+ 
++  minimatch@8.0.7:
++    resolution: {integrity: sha512-V+1uQNdzybxa14e/p00HZnQNNcTjnRJjDxg2V8wtkjFctq4M7hXFws4oekyTP0Jebeq7QYtpFyOeBAjc88zvYg==}
++    engines: {node: '>=16 || 14 >=14.17'}
++
++  minimatch@9.0.9:
++    resolution: {integrity: sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg==}
++    engines: {node: '>=16 || 14 >=14.17'}
++
+   minimist@1.2.8:
+     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
+ 
++  minipass@4.2.8:
++    resolution: {integrity: sha512-fNzuVyifolSLFL4NzpF+wEF4qrgqaaKX0haXPQEdQ7NKAN+WecoKMHV09YcuL/DHxrUsYQOK3MiuDf7Ip2OXfQ==}
++    engines: {node: '>=8'}
++
+   minipass@7.1.3:
+     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
+     engines: {node: '>=16 || 14 >=14.17'}
+@@ -6833,10 +7125,17 @@ packages:
+   path-parse@1.0.7:
+     resolution: {integrity: sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw==}
+ 
++  path-scurry@1.11.1:
++    resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
++    engines: {node: '>=16 || 14 >=14.18'}
++
+   path-scurry@2.0.2:
+     resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
+     engines: {node: 18 || 20 || >=22}
+ 
++  path-to-regexp@6.3.0:
++    resolution: {integrity: sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ==}
++
+   path-to-regexp@8.4.2:
+     resolution: {integrity: sha512-qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA==}
+ 
+@@ -6856,6 +7155,10 @@ packages:
+   picocolors@1.1.1:
+     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
+ 
++  picomatch@2.3.2:
++    resolution: {integrity: sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA==}
++    engines: {node: '>=8.6'}
++
+   picomatch@4.0.4:
+     resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
+     engines: {node: '>=12'}
+@@ -6904,26 +7207,26 @@ packages:
+     engines: {node: '>=18'}
+     hasBin: true
+     peerDependencies:
+-      postcss: 8.5.14
++      postcss: ^8.0.0
+ 
+   postcss-import@15.1.0:
+     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
+     engines: {node: '>=14.0.0'}
+     peerDependencies:
+-      postcss: 8.5.14
++      postcss: ^8.0.0
+ 
+   postcss-js@4.1.0:
+     resolution: {integrity: sha512-oIAOTqgIo7q2EOwbhb8UalYePMvYoIeRY2YKntdpFQXNosSu3vLrniGgmH9OKs/qAkfoj5oB3le/7mINW1LCfw==}
+     engines: {node: ^12 || ^14 || >= 16}
+     peerDependencies:
+-      postcss: 8.5.14
++      postcss: ^8.4.21
+ 
+   postcss-load-config@5.1.0:
+     resolution: {integrity: sha512-G5AJ+IX0aD0dygOE0yFZQ/huFFMSNneyfp0e3/bT05a8OfPC5FUoZRPfGijUdGOJNMewJiwzcHJXFafFzeKFVA==}
+     engines: {node: '>= 18'}
+     peerDependencies:
+       jiti: '>=1.21.0'
+-      postcss: 8.5.14
++      postcss: '>=8.0.9'
+       tsx: ^4.8.1
+     peerDependenciesMeta:
+       jiti:
+@@ -6938,7 +7241,7 @@ packages:
+     engines: {node: '>= 18'}
+     peerDependencies:
+       jiti: '>=1.21.0'
+-      postcss: 8.5.14
++      postcss: '>=8.0.9'
+       tsx: ^4.8.1
+       yaml: ^2.4.2
+     peerDependenciesMeta:
+@@ -6955,19 +7258,19 @@ packages:
+     resolution: {integrity: sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==}
+     engines: {node: '>=12.0'}
+     peerDependencies:
+-      postcss: 8.5.14
++      postcss: ^8.2.14
+ 
+   postcss-nested@7.0.2:
+     resolution: {integrity: sha512-5osppouFc0VR9/VYzYxO03VaDa3e8F23Kfd6/9qcZTUI8P58GIYlArOET2Wq0ywSl2o2PjELhYOFI4W7l5QHKw==}
+     engines: {node: '>=18.0'}
+     peerDependencies:
+-      postcss: 8.5.14
++      postcss: ^8.2.14
+ 
+   postcss-reporter@7.1.0:
+     resolution: {integrity: sha512-/eoEylGWyy6/DOiMP5lmFRdmDKThqgn7D6hP2dXKJI/0rJSO1ADFNngZfDzxL0YAxFvws+Rtpuji1YIHj4mySA==}
+     engines: {node: '>=10'}
+     peerDependencies:
+-      postcss: 8.5.14
++      postcss: ^8.1.0
+ 
+   postcss-selector-parser@6.0.10:
+     resolution: {integrity: sha512-IQ7TZdoaqbT+LCpShg46jnZVlhWD2w6iQYAcYXfHARZ7X1t/UGhhceQDs5X0cGqKvYlHNOuv7Oa1xmb0oQuA3w==}
+@@ -6984,6 +7287,10 @@ packages:
+   postcss-value-parser@4.2.0:
+     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
+ 
++  postcss@8.4.31:
++    resolution: {integrity: sha512-PS08Iboia9mts/2ygV3eLpY5ghnUcfLV/EXTOW1E2qYxJKGGBUtNjN76FYHnMs36RmARn41bC0AZmn+rR0OVpQ==}
++    engines: {node: ^10 || ^12 || >=14}
++
+   postcss@8.5.14:
+     resolution: {integrity: sha512-SoSL4+OSEtR99LHFZQiJLkT59C5B1amGO1NzTwj7TT1qCUgUO6hxOvzkOYxD+vMrXBM3XJIKzokoERdqQq/Zmg==}
+     engines: {node: ^10 || ^12 || >=14}
+@@ -7066,6 +7373,9 @@ packages:
+   queue-microtask@1.2.3:
+     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
+ 
++  randombytes@2.1.0:
++    resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
++
+   range-parser@1.2.1:
+     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
+     engines: {node: '>= 0.6'}
+@@ -7473,6 +7783,9 @@ packages:
+     resolution: {integrity: sha512-ZYkZLAvKTKQXWuh5XpBw7CdbSzagarX39WyZ2H07CDLC5/KfsRGlIXV8d4+tfqX1M7916mRqR1QfNHSij+c9Pw==}
+     engines: {node: '>=18'}
+ 
++  serialize-javascript@6.0.2:
++    resolution: {integrity: sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==}
++
+   serialize-javascript@7.0.5:
+     resolution: {integrity: sha512-F4LcB0UqUl1zErq+1nYEEzSHJnIwb3AF2XWB94b+afhrekOUijwooAYqFyRbjYkm2PAKBabx6oYv/xDxNi8IBw==}
+     engines: {node: '>=20.0.0'}
+@@ -7681,6 +7994,10 @@ packages:
+     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
+     engines: {node: '>=8'}
+ 
++  string-width@5.1.2:
++    resolution: {integrity: sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA==}
++    engines: {node: '>=12'}
++
+   string-width@7.2.0:
+     resolution: {integrity: sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ==}
+     engines: {node: '>=18'}
+@@ -7998,6 +8315,7 @@ packages:
+   tsconfck@3.1.6:
+     resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
+     engines: {node: ^18 || >=20}
++    deprecated: unmaintained
+     hasBin: true
+     peerDependencies:
+       typescript: ^5.0.0
+@@ -8050,6 +8368,14 @@ packages:
+   undici-types@6.21.0:
+     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+ 
++  undici@6.27.0:
++    resolution: {integrity: sha512-YmfV3YnEDzXRC5lZ2jWtWWHKGUm1zIt8AhesR1tens+HTNv+YZlN/dp6G727LOvMJ8xjP9Be7Y2Sdr96LDm+pg==}
++    engines: {node: '>=18.17'}
++
++  undici@7.24.8:
++    resolution: {integrity: sha512-6KQ/+QxK49Z/p3HO6E5ZCZWNnCasyZLa5ExaVYyvPxUwKtbCPMKELJOqh7EqOle0t9cH/7d2TaaTRRa6Nhs4YQ==}
++    engines: {node: '>=20.18.1'}
++
+   undici@7.25.0:
+     resolution: {integrity: sha512-xXnp4kTyor2Zq+J1FfPI6Eq3ew5h6Vl0F/8d9XU5zZQf1tX9s2Su1/3PiMmUANFULpmksxkClamIZcaUqryHsQ==}
+     engines: {node: '>=20.18.1'}
+@@ -8208,7 +8534,7 @@ packages:
+     peerDependencies:
+       react: '>=19.2.0'
+       react-dom: '>=19.2.0'
+-      vite: '>=7.3.5 <8'
++      vite: ^7.0.0
+ 
+   vinyl-contents@2.0.0:
+     resolution: {integrity: sha512-cHq6NnGyi2pZ7xwdHSW1v4Jfnho4TEGtxZHw01cmnc8+i7jgR6bRnED/LbrKan/Q7CvVLbnvA5OepnhbpjBZ5Q==}
+@@ -8255,7 +8581,7 @@ packages:
+   vite-tsconfig-paths@5.1.4:
+     resolution: {integrity: sha512-cYj0LRuLV2c2sMqhqhGpaO3LretdtMn/BVX4cPLanIZuwwrkVl+lK84E/miEXkCHWXuq65rhNN4rXsBcOB3S4w==}
+     peerDependencies:
+-      vite: '>=7.3.5 <8'
++      vite: '*'
+     peerDependenciesMeta:
+       vite:
+         optional: true
+@@ -8263,7 +8589,7 @@ packages:
+   vite-tsconfig-paths@6.1.1:
+     resolution: {integrity: sha512-2cihq7zliibCCZ8P9cKJrQBkfgdvcFkOOc3Y02o3GWUDLgqjWsZudaoiuOwO/gzTzy17cS5F7ZPo4bsnS4DGkg==}
+     peerDependencies:
+-      vite: '>=7.3.5 <8'
++      vite: '*'
+ 
+   vite@7.3.5:
+     resolution: {integrity: sha512-KuOaNhcnGFN2zIPGA7wRmzF+lJA1sea7rHq17aiJ++9lzY1WWG6Jpwqwe1KNbRVPIqHmr8GLYx7jbrQcN/7/ww==}
+@@ -8308,7 +8634,7 @@ packages:
+   vitefu@1.1.3:
+     resolution: {integrity: sha512-ub4okH7Z5KLjb6hDyjqrGXqWtWvoYdU3IGm/NorpgHncKoLTCfRIbvlhBm7r0YstIaQRYlp4yEbFqDcKSzXSSg==}
+     peerDependencies:
+-      vite: '>=7.3.5 <8'
++      vite: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+     peerDependenciesMeta:
+       vite:
+         optional: true
+@@ -8329,7 +8655,7 @@ packages:
+       '@vitest/ui': 4.1.9
+       happy-dom: '*'
+       jsdom: '*'
+-      vite: '>=7.3.5 <8'
++      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+     peerDependenciesMeta:
+       '@edge-runtime/vm':
+         optional: true
+@@ -8529,6 +8855,10 @@ packages:
+     resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
+     engines: {node: '>=10'}
+ 
++  wrap-ansi@8.1.0:
++    resolution: {integrity: sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ==}
++    engines: {node: '>=12'}
++
+   wrap-ansi@9.0.2:
+     resolution: {integrity: sha512-42AtmgqjV+X1VpdOfyTGOYRi0/zsoLqtXQckTmqTeybT+BDIbM/Guxo7x3pE2vtpr1ok6xRqM9OpBe+Jyoqyww==}
+     engines: {node: '>=18'}
+@@ -8536,6 +8866,30 @@ packages:
+   wrappy@1.0.2:
+     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
+ 
++  ws@7.5.11:
++    resolution: {integrity: sha512-zS54Oen9bITtp7kp2XM3AydrCIq1D+HwJOuH+c+e4LfpL/lotP5osijd+UoMnxwAam1GN8R4KtLAyIrIcBNpiA==}
++    engines: {node: '>=8.3.0'}
++    peerDependencies:
++      bufferutil: ^4.0.1
++      utf-8-validate: ^5.0.2
++    peerDependenciesMeta:
++      bufferutil:
++        optional: true
++      utf-8-validate:
++        optional: true
++
++  ws@8.18.0:
++    resolution: {integrity: sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==}
++    engines: {node: '>=10.0.0'}
++    peerDependencies:
++      bufferutil: ^4.0.1
++      utf-8-validate: '>=5.0.2'
++    peerDependenciesMeta:
++      bufferutil:
++        optional: true
++      utf-8-validate:
++        optional: true
++
+   ws@8.21.0:
+     resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
+     engines: {node: '>=10.0.0'}
+@@ -8684,31 +9038,31 @@ snapshots:
+   '@ai-sdk/gateway@2.0.88(zod@4.4.3)':
+     dependencies:
+       '@ai-sdk/provider': 2.0.3
+-      '@ai-sdk/provider-utils': 3.0.25(patch_hash=4611a356f4bb4e6f1196858719f8cb03947a41850257ee0527b0ec03f927dd6d)(zod@4.4.3)
++      '@ai-sdk/provider-utils': 3.0.25(zod@4.4.3)
+       '@vercel/oidc': 3.1.0
+       zod: 4.4.3
+ 
+   '@ai-sdk/gateway@3.0.112(zod@4.4.3)':
+     dependencies:
+       '@ai-sdk/provider': 3.0.10
+-      '@ai-sdk/provider-utils': 4.0.27(patch_hash=168f9924f516aa1264359fc6b3520c6aaba761842888ccd504660fc30ee96d6f)(zod@4.4.3)
++      '@ai-sdk/provider-utils': 4.0.27(zod@4.4.3)
+       '@vercel/oidc': 3.2.0
+       zod: 4.4.3
+ 
+   '@ai-sdk/openai-compatible@2.0.48(zod@4.4.3)':
+     dependencies:
+       '@ai-sdk/provider': 3.0.10
+-      '@ai-sdk/provider-utils': 4.0.27(patch_hash=168f9924f516aa1264359fc6b3520c6aaba761842888ccd504660fc30ee96d6f)(zod@4.4.3)
++      '@ai-sdk/provider-utils': 4.0.27(zod@4.4.3)
+       zod: 4.4.3
+ 
+-  '@ai-sdk/provider-utils@3.0.25(patch_hash=4611a356f4bb4e6f1196858719f8cb03947a41850257ee0527b0ec03f927dd6d)(zod@4.4.3)':
++  '@ai-sdk/provider-utils@3.0.25(zod@4.4.3)':
+     dependencies:
+       '@ai-sdk/provider': 2.0.3
+       '@standard-schema/spec': 1.1.0
+       eventsource-parser: 3.0.8
+       zod: 4.4.3
+ 
+-  '@ai-sdk/provider-utils@4.0.27(patch_hash=168f9924f516aa1264359fc6b3520c6aaba761842888ccd504660fc30ee96d6f)(zod@4.4.3)':
++  '@ai-sdk/provider-utils@4.0.27(zod@4.4.3)':
+     dependencies:
+       '@ai-sdk/provider': 3.0.10
+       '@standard-schema/spec': 1.1.0
+@@ -8725,7 +9079,7 @@ snapshots:
+ 
+   '@ai-sdk/react@2.0.188(react@19.2.5)(zod@4.4.3)':
+     dependencies:
+-      '@ai-sdk/provider-utils': 3.0.25(patch_hash=4611a356f4bb4e6f1196858719f8cb03947a41850257ee0527b0ec03f927dd6d)(zod@4.4.3)
++      '@ai-sdk/provider-utils': 3.0.25(zod@4.4.3)
+       ai: 5.0.186(zod@4.4.3)
+       react: 19.2.5
+       swr: 2.4.1(react@19.2.5)
+@@ -8735,7 +9089,7 @@ snapshots:
+ 
+   '@ai-sdk/react@3.0.179(react@19.2.5)(zod@4.4.3)':
+     dependencies:
+-      '@ai-sdk/provider-utils': 4.0.27(patch_hash=168f9924f516aa1264359fc6b3520c6aaba761842888ccd504660fc30ee96d6f)(zod@4.4.3)
++      '@ai-sdk/provider-utils': 4.0.27(zod@4.4.3)
+       ai: 6.0.177(zod@4.4.3)
+       react: 19.2.5
+       swr: 2.4.1(react@19.2.5)
+@@ -9648,7 +10002,7 @@ snapshots:
+       '@babel/generator': 7.29.7
+       '@babel/helper-compilation-targets': 7.29.7
+       '@babel/helper-module-transforms': 7.29.7(@babel/core@7.29.7)
+-      '@babel/helpers': 7.29.2
++      '@babel/helpers': 7.29.7
+       '@babel/parser': 7.29.7
+       '@babel/template': 7.29.7
+       '@babel/traverse': 7.29.7
+@@ -9708,10 +10062,10 @@ snapshots:
+ 
+   '@babel/helper-validator-option@7.29.7': {}
+ 
+-  '@babel/helpers@7.29.2':
++  '@babel/helpers@7.29.7':
+     dependencies:
+-      '@babel/template': 7.28.6
+-      '@babel/types': 7.29.0
++      '@babel/template': 7.29.7
++      '@babel/types': 7.29.7
+ 
+   '@babel/parser@7.29.3':
+     dependencies:
+@@ -9733,12 +10087,6 @@ snapshots:
+ 
+   '@babel/runtime@7.29.2': {}
+ 
+-  '@babel/template@7.28.6':
+-    dependencies:
+-      '@babel/code-frame': 7.29.0
+-      '@babel/parser': 7.29.3
+-      '@babel/types': 7.29.0
+-
+   '@babel/template@7.29.7':
+     dependencies:
+       '@babel/code-frame': 7.29.7
+@@ -9927,82 +10275,235 @@ snapshots:
+     dependencies:
+       tslib: 2.8.1
+ 
+-  '@esbuild/aix-ppc64@0.28.1':
++  '@esbuild/aix-ppc64@0.25.4':
++    optional: true
++
++  '@esbuild/aix-ppc64@0.27.3':
++    optional: true
++
++  '@esbuild/aix-ppc64@0.27.7':
++    optional: true
++
++  '@esbuild/android-arm64@0.25.4':
++    optional: true
++
++  '@esbuild/android-arm64@0.27.3':
++    optional: true
++
++  '@esbuild/android-arm64@0.27.7':
++    optional: true
++
++  '@esbuild/android-arm@0.25.4':
++    optional: true
++
++  '@esbuild/android-arm@0.27.3':
++    optional: true
++
++  '@esbuild/android-arm@0.27.7':
++    optional: true
++
++  '@esbuild/android-x64@0.25.4':
++    optional: true
++
++  '@esbuild/android-x64@0.27.3':
++    optional: true
++
++  '@esbuild/android-x64@0.27.7':
++    optional: true
++
++  '@esbuild/darwin-arm64@0.25.4':
++    optional: true
++
++  '@esbuild/darwin-arm64@0.27.3':
++    optional: true
++
++  '@esbuild/darwin-arm64@0.27.7':
++    optional: true
++
++  '@esbuild/darwin-x64@0.25.4':
++    optional: true
++
++  '@esbuild/darwin-x64@0.27.3':
++    optional: true
++
++  '@esbuild/darwin-x64@0.27.7':
++    optional: true
++
++  '@esbuild/freebsd-arm64@0.25.4':
++    optional: true
++
++  '@esbuild/freebsd-arm64@0.27.3':
++    optional: true
++
++  '@esbuild/freebsd-arm64@0.27.7':
++    optional: true
++
++  '@esbuild/freebsd-x64@0.25.4':
++    optional: true
++
++  '@esbuild/freebsd-x64@0.27.3':
++    optional: true
++
++  '@esbuild/freebsd-x64@0.27.7':
++    optional: true
++
++  '@esbuild/linux-arm64@0.25.4':
++    optional: true
++
++  '@esbuild/linux-arm64@0.27.3':
++    optional: true
++
++  '@esbuild/linux-arm64@0.27.7':
++    optional: true
++
++  '@esbuild/linux-arm@0.25.4':
++    optional: true
++
++  '@esbuild/linux-arm@0.27.3':
++    optional: true
++
++  '@esbuild/linux-arm@0.27.7':
++    optional: true
++
++  '@esbuild/linux-ia32@0.25.4':
++    optional: true
++
++  '@esbuild/linux-ia32@0.27.3':
++    optional: true
++
++  '@esbuild/linux-ia32@0.27.7':
++    optional: true
++
++  '@esbuild/linux-loong64@0.25.4':
++    optional: true
++
++  '@esbuild/linux-loong64@0.27.3':
++    optional: true
++
++  '@esbuild/linux-loong64@0.27.7':
+     optional: true
+ 
+-  '@esbuild/android-arm64@0.28.1':
++  '@esbuild/linux-mips64el@0.25.4':
+     optional: true
+ 
+-  '@esbuild/android-arm@0.28.1':
++  '@esbuild/linux-mips64el@0.27.3':
+     optional: true
+ 
+-  '@esbuild/android-x64@0.28.1':
++  '@esbuild/linux-mips64el@0.27.7':
+     optional: true
+ 
+-  '@esbuild/darwin-arm64@0.28.1':
++  '@esbuild/linux-ppc64@0.25.4':
+     optional: true
+ 
+-  '@esbuild/darwin-x64@0.28.1':
++  '@esbuild/linux-ppc64@0.27.3':
+     optional: true
+ 
+-  '@esbuild/freebsd-arm64@0.28.1':
++  '@esbuild/linux-ppc64@0.27.7':
+     optional: true
+ 
+-  '@esbuild/freebsd-x64@0.28.1':
++  '@esbuild/linux-riscv64@0.25.4':
+     optional: true
+ 
+-  '@esbuild/linux-arm64@0.28.1':
++  '@esbuild/linux-riscv64@0.27.3':
+     optional: true
+ 
+-  '@esbuild/linux-arm@0.28.1':
++  '@esbuild/linux-riscv64@0.27.7':
+     optional: true
+ 
+-  '@esbuild/linux-ia32@0.28.1':
++  '@esbuild/linux-s390x@0.25.4':
+     optional: true
+ 
+-  '@esbuild/linux-loong64@0.28.1':
++  '@esbuild/linux-s390x@0.27.3':
+     optional: true
+ 
+-  '@esbuild/linux-mips64el@0.28.1':
++  '@esbuild/linux-s390x@0.27.7':
+     optional: true
+ 
+-  '@esbuild/linux-ppc64@0.28.1':
++  '@esbuild/linux-x64@0.25.4':
+     optional: true
+ 
+-  '@esbuild/linux-riscv64@0.28.1':
++  '@esbuild/linux-x64@0.27.3':
+     optional: true
+ 
+-  '@esbuild/linux-s390x@0.28.1':
++  '@esbuild/linux-x64@0.27.7':
+     optional: true
+ 
+-  '@esbuild/linux-x64@0.28.1':
++  '@esbuild/netbsd-arm64@0.25.4':
+     optional: true
+ 
+-  '@esbuild/netbsd-arm64@0.28.1':
++  '@esbuild/netbsd-arm64@0.27.3':
+     optional: true
+ 
+-  '@esbuild/netbsd-x64@0.28.1':
++  '@esbuild/netbsd-arm64@0.27.7':
+     optional: true
+ 
+-  '@esbuild/openbsd-arm64@0.28.1':
++  '@esbuild/netbsd-x64@0.25.4':
+     optional: true
+ 
+-  '@esbuild/openbsd-x64@0.28.1':
++  '@esbuild/netbsd-x64@0.27.3':
+     optional: true
+ 
+-  '@esbuild/openharmony-arm64@0.28.1':
++  '@esbuild/netbsd-x64@0.27.7':
+     optional: true
+ 
+-  '@esbuild/sunos-x64@0.28.1':
++  '@esbuild/openbsd-arm64@0.25.4':
+     optional: true
+ 
+-  '@esbuild/win32-arm64@0.28.1':
++  '@esbuild/openbsd-arm64@0.27.3':
+     optional: true
+ 
+-  '@esbuild/win32-ia32@0.28.1':
++  '@esbuild/openbsd-arm64@0.27.7':
+     optional: true
+ 
+-  '@esbuild/win32-x64@0.28.1':
++  '@esbuild/openbsd-x64@0.25.4':
++    optional: true
++
++  '@esbuild/openbsd-x64@0.27.3':
++    optional: true
++
++  '@esbuild/openbsd-x64@0.27.7':
++    optional: true
++
++  '@esbuild/openharmony-arm64@0.27.3':
++    optional: true
++
++  '@esbuild/openharmony-arm64@0.27.7':
++    optional: true
++
++  '@esbuild/sunos-x64@0.25.4':
++    optional: true
++
++  '@esbuild/sunos-x64@0.27.3':
++    optional: true
++
++  '@esbuild/sunos-x64@0.27.7':
++    optional: true
++
++  '@esbuild/win32-arm64@0.25.4':
++    optional: true
++
++  '@esbuild/win32-arm64@0.27.3':
++    optional: true
++
++  '@esbuild/win32-arm64@0.27.7':
++    optional: true
++
++  '@esbuild/win32-ia32@0.25.4':
++    optional: true
++
++  '@esbuild/win32-ia32@0.27.3':
++    optional: true
++
++  '@esbuild/win32-ia32@0.27.7':
++    optional: true
++
++  '@esbuild/win32-x64@0.25.4':
++    optional: true
++
++  '@esbuild/win32-x64@0.27.3':
++    optional: true
++
++  '@esbuild/win32-x64@0.27.7':
+     optional: true
+ 
+   '@eslint/js@9.39.4': {}
+@@ -10269,6 +10770,15 @@ snapshots:
+     optionalDependencies:
+       '@types/node': 22.19.19
+ 
++  '@isaacs/cliui@8.0.2':
++    dependencies:
++      string-width: 5.1.2
++      string-width-cjs: string-width@4.2.3
++      strip-ansi: 7.2.0
++      strip-ansi-cjs: strip-ansi@6.0.1
++      wrap-ansi: 8.1.0
++      wrap-ansi-cjs: wrap-ansi@7.0.0
++
+   '@isaacs/cliui@9.0.0': {}
+ 
+   '@jest/diff-sequences@30.4.0': {}
+@@ -10439,7 +10949,7 @@ snapshots:
+   '@node-minify/core@8.0.6':
+     dependencies:
+       '@node-minify/utils': 8.0.6
+-      glob: 13.0.6
++      glob: 9.3.5
+       mkdirp: 1.0.4
+ 
+   '@node-minify/terser@8.0.6':
+@@ -10477,10 +10987,10 @@ snapshots:
+       aws4fetch: 1.0.20
+       chalk: 5.6.2
+       cookie: 1.1.1
+-      esbuild: 0.28.1
++      esbuild: 0.25.4
+       express: 5.2.1
+       next: 16.2.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+-      path-to-regexp: 8.4.2
++      path-to-regexp: 6.3.0
+       urlpattern-polyfill: 10.1.0
+       yaml: 2.9.0
+     transitivePeerDependencies:
+@@ -10514,7 +11024,12 @@ snapshots:
+ 
+   '@opentelemetry/api@1.9.1': {}
+ 
+-  '@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1)':
++  '@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.1)':
++    dependencies:
++      '@opentelemetry/api': 1.9.1
++      '@opentelemetry/semantic-conventions': 1.40.0
++
++  '@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1)':
+     dependencies:
+       '@opentelemetry/api': 1.9.1
+       '@opentelemetry/semantic-conventions': 1.40.0
+@@ -10523,7 +11038,7 @@ snapshots:
+     dependencies:
+       '@opentelemetry/api': 1.9.1
+       '@opentelemetry/api-logs': 0.208.0
+-      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
++      '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/otlp-exporter-base': 0.208.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/otlp-transformer': 0.208.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/sdk-logs': 0.208.0(@opentelemetry/api@1.9.1)
+@@ -10531,14 +11046,14 @@ snapshots:
+   '@opentelemetry/otlp-exporter-base@0.208.0(@opentelemetry/api@1.9.1)':
+     dependencies:
+       '@opentelemetry/api': 1.9.1
+-      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
++      '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/otlp-transformer': 0.208.0(@opentelemetry/api@1.9.1)
+ 
+   '@opentelemetry/otlp-transformer@0.208.0(@opentelemetry/api@1.9.1)':
+     dependencies:
+       '@opentelemetry/api': 1.9.1
+       '@opentelemetry/api-logs': 0.208.0
+-      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
++      '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/sdk-logs': 0.208.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/sdk-metrics': 2.2.0(@opentelemetry/api@1.9.1)
+@@ -10548,37 +11063,40 @@ snapshots:
+   '@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.1)':
+     dependencies:
+       '@opentelemetry/api': 1.9.1
+-      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
++      '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/semantic-conventions': 1.40.0
+ 
+   '@opentelemetry/resources@2.7.1(@opentelemetry/api@1.9.1)':
+     dependencies:
+       '@opentelemetry/api': 1.9.1
+-      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
++      '@opentelemetry/core': 2.7.1(@opentelemetry/api@1.9.1)
+       '@opentelemetry/semantic-conventions': 1.40.0
+ 
+   '@opentelemetry/sdk-logs@0.208.0(@opentelemetry/api@1.9.1)':
+     dependencies:
+       '@opentelemetry/api': 1.9.1
+       '@opentelemetry/api-logs': 0.208.0
+-      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
++      '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.1)
+ 
+   '@opentelemetry/sdk-metrics@2.2.0(@opentelemetry/api@1.9.1)':
+     dependencies:
+       '@opentelemetry/api': 1.9.1
+-      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
++      '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.1)
+ 
+   '@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.1)':
+     dependencies:
+       '@opentelemetry/api': 1.9.1
+-      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
++      '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.1)
+       '@opentelemetry/semantic-conventions': 1.40.0
+ 
+   '@opentelemetry/semantic-conventions@1.40.0': {}
+ 
++  '@pkgjs/parseargs@0.11.0':
++    optional: true
++
+   '@playwright/test@1.60.0':
+     dependencies:
+       playwright: 1.60.0
+@@ -11122,7 +11640,7 @@ snapshots:
+ 
+   '@rollup/plugin-terser@0.4.4(rollup@4.60.3)':
+     dependencies:
+-      serialize-javascript: 7.0.5
++      serialize-javascript: 6.0.2
+       smob: 1.6.1
+       terser: 5.47.1
+     optionalDependencies:
+@@ -12331,7 +12849,7 @@ snapshots:
+       '@wdio/types': 9.27.1
+       '@wdio/utils': 9.27.1
+       deepmerge-ts: 7.1.5
+-      glob: 13.0.6
++      glob: 10.5.0
+       import-meta-resolve: 4.2.0
+       jiti: 2.7.0
+     transitivePeerDependencies:
+@@ -12633,7 +13151,7 @@ snapshots:
+   ai-sdk-ollama@3.8.4(ai@6.0.177(zod@4.4.3))(zod@4.4.3):
+     dependencies:
+       '@ai-sdk/provider': 3.0.10
+-      '@ai-sdk/provider-utils': 4.0.27(patch_hash=168f9924f516aa1264359fc6b3520c6aaba761842888ccd504660fc30ee96d6f)(zod@4.4.3)
++      '@ai-sdk/provider-utils': 4.0.27(zod@4.4.3)
+       ai: 6.0.177(zod@4.4.3)
+       jsonrepair: 3.14.0
+       ollama: 0.6.3
+@@ -12644,7 +13162,7 @@ snapshots:
+     dependencies:
+       '@ai-sdk/gateway': 2.0.88(zod@4.4.3)
+       '@ai-sdk/provider': 2.0.3
+-      '@ai-sdk/provider-utils': 3.0.25(patch_hash=4611a356f4bb4e6f1196858719f8cb03947a41850257ee0527b0ec03f927dd6d)(zod@4.4.3)
++      '@ai-sdk/provider-utils': 3.0.25(zod@4.4.3)
+       '@opentelemetry/api': 1.9.0
+       zod: 4.4.3
+ 
+@@ -12652,7 +13170,7 @@ snapshots:
+     dependencies:
+       '@ai-sdk/gateway': 3.0.112(zod@4.4.3)
+       '@ai-sdk/provider': 3.0.10
+-      '@ai-sdk/provider-utils': 4.0.27(patch_hash=168f9924f516aa1264359fc6b3520c6aaba761842888ccd504660fc30ee96d6f)(zod@4.4.3)
++      '@ai-sdk/provider-utils': 4.0.27(zod@4.4.3)
+       '@opentelemetry/api': 1.9.0
+       zod: 4.4.3
+ 
+@@ -12706,7 +13224,7 @@ snapshots:
+   anymatch@3.1.3:
+     dependencies:
+       normalize-path: 3.0.0
+-      picomatch: 4.0.4
++      picomatch: 2.3.2
+ 
+   app-store-server-api@0.17.3:
+     dependencies:
+@@ -12714,7 +13232,7 @@ snapshots:
+ 
+   archiver-utils@5.0.2:
+     dependencies:
+-      glob: 13.0.6
++      glob: 10.5.0
+       graceful-fs: 4.2.11
+       is-stream: 2.0.1
+       lazystream: 1.0.1
+@@ -13614,6 +14132,8 @@ snapshots:
+ 
+   duplexer@0.1.2: {}
+ 
++  eastasianwidth@0.2.0: {}
++
+   easy-table@1.2.0:
+     dependencies:
+       ansi-regex: 5.0.1
+@@ -13657,12 +14177,26 @@ snapshots:
+ 
+   electron-to-chromium@1.5.353: {}
+ 
++  embla-carousel-react@8.6.0(react@19.2.5):
++    dependencies:
++      embla-carousel: 8.6.0
++      embla-carousel-reactive-utils: 8.6.0(embla-carousel@8.6.0)
++      react: 19.2.5
++
++  embla-carousel-reactive-utils@8.6.0(embla-carousel@8.6.0):
++    dependencies:
++      embla-carousel: 8.6.0
++
++  embla-carousel@8.6.0: {}
++
+   emoji-regex-xs@2.0.1: {}
+ 
+   emoji-regex@10.6.0: {}
+ 
+   emoji-regex@8.0.0: {}
+ 
++  emoji-regex@9.2.2: {}
++
+   emojis-list@3.0.0: {}
+ 
+   encodeurl@2.0.0: {}
+@@ -13729,34 +14263,91 @@ snapshots:
+ 
+   es-toolkit@1.46.1: {}
+ 
+-  esbuild@0.28.1:
++  esbuild@0.25.4:
++    optionalDependencies:
++      '@esbuild/aix-ppc64': 0.25.4
++      '@esbuild/android-arm': 0.25.4
++      '@esbuild/android-arm64': 0.25.4
++      '@esbuild/android-x64': 0.25.4
++      '@esbuild/darwin-arm64': 0.25.4
++      '@esbuild/darwin-x64': 0.25.4
++      '@esbuild/freebsd-arm64': 0.25.4
++      '@esbuild/freebsd-x64': 0.25.4
++      '@esbuild/linux-arm': 0.25.4
++      '@esbuild/linux-arm64': 0.25.4
++      '@esbuild/linux-ia32': 0.25.4
++      '@esbuild/linux-loong64': 0.25.4
++      '@esbuild/linux-mips64el': 0.25.4
++      '@esbuild/linux-ppc64': 0.25.4
++      '@esbuild/linux-riscv64': 0.25.4
++      '@esbuild/linux-s390x': 0.25.4
++      '@esbuild/linux-x64': 0.25.4
++      '@esbuild/netbsd-arm64': 0.25.4
++      '@esbuild/netbsd-x64': 0.25.4
++      '@esbuild/openbsd-arm64': 0.25.4
++      '@esbuild/openbsd-x64': 0.25.4
++      '@esbuild/sunos-x64': 0.25.4
++      '@esbuild/win32-arm64': 0.25.4
++      '@esbuild/win32-ia32': 0.25.4
++      '@esbuild/win32-x64': 0.25.4
++
++  esbuild@0.27.3:
+     optionalDependencies:
+-      '@esbuild/aix-ppc64': 0.28.1
+-      '@esbuild/android-arm': 0.28.1
+-      '@esbuild/android-arm64': 0.28.1
+-      '@esbuild/android-x64': 0.28.1
+-      '@esbuild/darwin-arm64': 0.28.1
+-      '@esbuild/darwin-x64': 0.28.1
+-      '@esbuild/freebsd-arm64': 0.28.1
+-      '@esbuild/freebsd-x64': 0.28.1
+-      '@esbuild/linux-arm': 0.28.1
+-      '@esbuild/linux-arm64': 0.28.1
+-      '@esbuild/linux-ia32': 0.28.1
+-      '@esbuild/linux-loong64': 0.28.1
+-      '@esbuild/linux-mips64el': 0.28.1
+-      '@esbuild/linux-ppc64': 0.28.1
+-      '@esbuild/linux-riscv64': 0.28.1
+-      '@esbuild/linux-s390x': 0.28.1
+-      '@esbuild/linux-x64': 0.28.1
+-      '@esbuild/netbsd-arm64': 0.28.1
+-      '@esbuild/netbsd-x64': 0.28.1
+-      '@esbuild/openbsd-arm64': 0.28.1
+-      '@esbuild/openbsd-x64': 0.28.1
+-      '@esbuild/openharmony-arm64': 0.28.1
+-      '@esbuild/sunos-x64': 0.28.1
+-      '@esbuild/win32-arm64': 0.28.1
+-      '@esbuild/win32-ia32': 0.28.1
+-      '@esbuild/win32-x64': 0.28.1
++      '@esbuild/aix-ppc64': 0.27.3
++      '@esbuild/android-arm': 0.27.3
++      '@esbuild/android-arm64': 0.27.3
++      '@esbuild/android-x64': 0.27.3
++      '@esbuild/darwin-arm64': 0.27.3
++      '@esbuild/darwin-x64': 0.27.3
++      '@esbuild/freebsd-arm64': 0.27.3
++      '@esbuild/freebsd-x64': 0.27.3
++      '@esbuild/linux-arm': 0.27.3
++      '@esbuild/linux-arm64': 0.27.3
++      '@esbuild/linux-ia32': 0.27.3
++      '@esbuild/linux-loong64': 0.27.3
++      '@esbuild/linux-mips64el': 0.27.3
++      '@esbuild/linux-ppc64': 0.27.3
++      '@esbuild/linux-riscv64': 0.27.3
++      '@esbuild/linux-s390x': 0.27.3
++      '@esbuild/linux-x64': 0.27.3
++      '@esbuild/netbsd-arm64': 0.27.3
++      '@esbuild/netbsd-x64': 0.27.3
++      '@esbuild/openbsd-arm64': 0.27.3
++      '@esbuild/openbsd-x64': 0.27.3
++      '@esbuild/openharmony-arm64': 0.27.3
++      '@esbuild/sunos-x64': 0.27.3
++      '@esbuild/win32-arm64': 0.27.3
++      '@esbuild/win32-ia32': 0.27.3
++      '@esbuild/win32-x64': 0.27.3
++
++  esbuild@0.27.7:
++    optionalDependencies:
++      '@esbuild/aix-ppc64': 0.27.7
++      '@esbuild/android-arm': 0.27.7
++      '@esbuild/android-arm64': 0.27.7
++      '@esbuild/android-x64': 0.27.7
++      '@esbuild/darwin-arm64': 0.27.7
++      '@esbuild/darwin-x64': 0.27.7
++      '@esbuild/freebsd-arm64': 0.27.7
++      '@esbuild/freebsd-x64': 0.27.7
++      '@esbuild/linux-arm': 0.27.7
++      '@esbuild/linux-arm64': 0.27.7
++      '@esbuild/linux-ia32': 0.27.7
++      '@esbuild/linux-loong64': 0.27.7
++      '@esbuild/linux-mips64el': 0.27.7
++      '@esbuild/linux-ppc64': 0.27.7
++      '@esbuild/linux-riscv64': 0.27.7
++      '@esbuild/linux-s390x': 0.27.7
++      '@esbuild/linux-x64': 0.27.7
++      '@esbuild/netbsd-arm64': 0.27.7
++      '@esbuild/netbsd-x64': 0.27.7
++      '@esbuild/openbsd-arm64': 0.27.7
++      '@esbuild/openbsd-x64': 0.27.7
++      '@esbuild/openharmony-arm64': 0.27.7
++      '@esbuild/sunos-x64': 0.27.7
++      '@esbuild/win32-arm64': 0.27.7
++      '@esbuild/win32-ia32': 0.27.7
++      '@esbuild/win32-x64': 0.27.7
+ 
+   escalade@3.2.0: {}
+ 
+@@ -14073,6 +14664,8 @@ snapshots:
+       - bare-abort-controller
+       - react-native-b4a
+ 
++  fs.realpath@1.0.0: {}
++
+   fsevents@2.3.2:
+     optional: true
+ 
+@@ -14189,6 +14782,15 @@ snapshots:
+     dependencies:
+       find-index: 0.1.1
+ 
++  glob@10.5.0:
++    dependencies:
++      foreground-child: 3.3.1
++      jackspeak: 3.4.3
++      minimatch: 9.0.9
++      minipass: 7.1.3
++      package-json-from-dist: 1.0.1
++      path-scurry: 1.11.1
++
+   glob@12.0.0:
+     dependencies:
+       foreground-child: 3.3.1
+@@ -14204,6 +14806,21 @@ snapshots:
+       minipass: 7.1.3
+       path-scurry: 2.0.2
+ 
++  glob@8.1.0:
++    dependencies:
++      fs.realpath: 1.0.0
++      inflight: 1.0.6
++      inherits: 2.0.4
++      minimatch: 5.1.9
++      once: 1.4.0
++
++  glob@9.3.5:
++    dependencies:
++      fs.realpath: 1.0.0
++      minimatch: 8.0.7
++      minipass: 4.2.8
++      path-scurry: 1.11.1
++
+   globals@15.15.0: {}
+ 
+   globrex@0.1.2: {}
+@@ -14540,6 +15157,11 @@ snapshots:
+ 
+   import-meta-resolve@4.2.0: {}
+ 
++  inflight@1.0.6:
++    dependencies:
++      once: 1.4.0
++      wrappy: 1.0.2
++
+   inherits@2.0.4: {}
+ 
+   inline-style-parser@0.2.7: {}
+@@ -14660,6 +15282,12 @@ snapshots:
+       html-escaper: 2.0.2
+       istanbul-lib-report: 3.0.1
+ 
++  jackspeak@3.4.3:
++    dependencies:
++      '@isaacs/cliui': 8.0.2
++    optionalDependencies:
++      '@pkgjs/parseargs': 0.11.0
++
+   jackspeak@4.2.3:
+     dependencies:
+       '@isaacs/cliui': 9.0.0
+@@ -15026,7 +15654,7 @@ snapshots:
+     transitivePeerDependencies:
+       - supports-color
+ 
+-  mdast-util-gfm-autolink-literal@2.0.1(patch_hash=a119b196bac546b8f07e1a9600ced6f526b0676e2b959914868e393ecffbaff8):
++  mdast-util-gfm-autolink-literal@2.0.1:
+     dependencies:
+       '@types/mdast': 4.0.4
+       ccount: 2.0.1
+@@ -15074,7 +15702,7 @@ snapshots:
+   mdast-util-gfm@3.1.0:
+     dependencies:
+       mdast-util-from-markdown: 2.0.3
+-      mdast-util-gfm-autolink-literal: 2.0.1(patch_hash=a119b196bac546b8f07e1a9600ced6f526b0676e2b959914868e393ecffbaff8)
++      mdast-util-gfm-autolink-literal: 2.0.1
+       mdast-util-gfm-footnote: 2.1.0
+       mdast-util-gfm-strikethrough: 2.0.0
+       mdast-util-gfm-table: 2.0.0
+@@ -15439,7 +16067,7 @@ snapshots:
+   micromatch@4.0.8:
+     dependencies:
+       braces: 3.0.3
+-      picomatch: 4.0.4
++      picomatch: 2.3.2
+ 
+   mime-db@1.52.0: {}
+ 
+@@ -15461,9 +16089,9 @@ snapshots:
+     dependencies:
+       '@cspotcode/source-map-support': 0.8.1
+       sharp: 0.34.5
+-      undici: 7.25.0
++      undici: 7.24.8
+       workerd: 1.20260507.1
+-      ws: 8.21.0
++      ws: 8.18.0
+       youch: 4.1.0-beta.10
+     transitivePeerDependencies:
+       - bufferutil
+@@ -15481,8 +16109,18 @@ snapshots:
+     dependencies:
+       brace-expansion: 2.1.0
+ 
++  minimatch@8.0.7:
++    dependencies:
++      brace-expansion: 2.1.0
++
++  minimatch@9.0.9:
++    dependencies:
++      brace-expansion: 2.1.0
++
+   minimist@1.2.8: {}
+ 
++  minipass@4.2.8: {}
++
+   minipass@7.1.3: {}
+ 
+   mitt@3.0.1: {}
+@@ -15504,13 +16142,13 @@ snapshots:
+       diff: 5.2.2
+       escape-string-regexp: 4.0.0
+       find-up: 5.0.0
+-      glob: 13.0.6
++      glob: 8.1.0
+       he: 1.2.0
+       js-yaml: 4.2.0
+       log-symbols: 4.1.0
+       minimatch: 5.1.9
+       ms: 2.1.3
+-      serialize-javascript: 7.0.5
++      serialize-javascript: 6.0.2
+       strip-json-comments: 3.1.1
+       supports-color: 8.1.1
+       workerpool: 6.5.1
+@@ -15556,7 +16194,7 @@ snapshots:
+       '@swc/helpers': 0.5.15
+       baseline-browser-mapping: 2.10.29
+       caniuse-lite: 1.0.30001792
+-      postcss: 8.5.14
++      postcss: 8.4.31
+       react: 19.2.5
+       react-dom: 19.2.5(react@19.2.5)
+       styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.5)
+@@ -15812,11 +16450,18 @@ snapshots:
+ 
+   path-parse@1.0.7: {}
+ 
++  path-scurry@1.11.1:
++    dependencies:
++      lru-cache: 10.4.3
++      minipass: 7.1.3
++
+   path-scurry@2.0.2:
+     dependencies:
+       lru-cache: 11.3.6
+       minipass: 7.1.3
+ 
++  path-to-regexp@6.3.0: {}
++
+   path-to-regexp@8.4.2: {}
+ 
+   pathe@1.1.2: {}
+@@ -15831,6 +16476,8 @@ snapshots:
+ 
+   picocolors@1.1.1: {}
+ 
++  picomatch@2.3.2: {}
++
+   picomatch@4.0.4: {}
+ 
+   pify@2.3.0: {}
+@@ -15943,6 +16590,12 @@ snapshots:
+ 
+   postcss-value-parser@4.2.0: {}
+ 
++  postcss@8.4.31:
++    dependencies:
++      nanoid: 3.3.12
++      picocolors: 1.1.1
++      source-map-js: 1.2.1
++
+   postcss@8.5.14:
+     dependencies:
+       nanoid: 3.3.12
+@@ -16053,6 +16706,10 @@ snapshots:
+ 
+   queue-microtask@1.2.3: {}
+ 
++  randombytes@2.1.0:
++    dependencies:
++      safe-buffer: 5.2.1
++
+   range-parser@1.2.1: {}
+ 
+   raw-body@3.0.2:
+@@ -16255,7 +16912,7 @@ snapshots:
+ 
+   readdirp@3.6.0:
+     dependencies:
+-      picomatch: 4.0.4
++      picomatch: 2.3.2
+ 
+   readdirp@4.1.2: {}
+ 
+@@ -16559,6 +17216,10 @@ snapshots:
+     dependencies:
+       type-fest: 4.41.0
+ 
++  serialize-javascript@6.0.2:
++    dependencies:
++      randombytes: 2.1.0
++
+   serialize-javascript@7.0.5: {}
+ 
+   serve-static@2.2.1:
+@@ -16827,6 +17488,12 @@ snapshots:
+       is-fullwidth-code-point: 3.0.0
+       strip-ansi: 6.0.1
+ 
++  string-width@5.1.2:
++    dependencies:
++      eastasianwidth: 0.2.0
++      emoji-regex: 9.2.2
++      strip-ansi: 7.2.0
++
+   string-width@7.2.0:
+     dependencies:
+       emoji-regex: 10.6.0
+@@ -17147,7 +17814,7 @@ snapshots:
+ 
+   tsx@4.21.0:
+     dependencies:
+-      esbuild: 0.28.1
++      esbuild: 0.27.7
+       get-tsconfig: 4.14.0
+     optionalDependencies:
+       fsevents: 2.3.3
+@@ -17178,6 +17845,10 @@ snapshots:
+ 
+   undici-types@6.21.0: {}
+ 
++  undici@6.27.0: {}
++
++  undici@7.24.8: {}
++
+   undici@7.25.0: {}
+ 
+   unenv@2.0.0-rc.24:
+@@ -17434,7 +18105,7 @@ snapshots:
+ 
+   vite@7.3.5(@types/node@22.19.19)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.9.0):
+     dependencies:
+-      esbuild: 0.28.1
++      esbuild: 0.27.7
+       fdir: 6.5.0(picomatch@4.0.4)
+       picomatch: 4.0.4
+       postcss: 8.5.14
+@@ -17527,7 +18198,7 @@ snapshots:
+       '@wdio/utils': 9.27.1
+       deepmerge-ts: 7.1.5
+       https-proxy-agent: 7.0.6
+-      undici: 7.25.0
++      undici: 6.27.0
+       ws: 8.21.0
+     transitivePeerDependencies:
+       - bare-abort-controller
+@@ -17592,7 +18263,7 @@ snapshots:
+       opener: 1.5.2
+       picocolors: 1.1.1
+       sirv: 2.0.4
+-      ws: 8.21.0
++      ws: 7.5.11
+     transitivePeerDependencies:
+       - bufferutil
+       - utf-8-validate
+@@ -17769,9 +18440,9 @@ snapshots:
+       '@cloudflare/kv-asset-handler': 0.5.0
+       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260507.1)
+       blake3-wasm: 2.1.5
+-      esbuild: 0.28.1
++      esbuild: 0.27.3
+       miniflare: 4.20260507.1
+-      path-to-regexp: 8.4.2
++      path-to-regexp: 6.3.0
+       unenv: 2.0.0-rc.24
+       workerd: 1.20260507.1
+     optionalDependencies:
+@@ -17793,6 +18464,12 @@ snapshots:
+       string-width: 4.2.3
+       strip-ansi: 6.0.1
+ 
++  wrap-ansi@8.1.0:
++    dependencies:
++      ansi-styles: 6.2.3
++      string-width: 5.1.2
++      strip-ansi: 7.2.0
++
+   wrap-ansi@9.0.2:
+     dependencies:
+       ansi-styles: 6.2.3
+@@ -17801,6 +18478,10 @@ snapshots:
+ 
+   wrappy@1.0.2: {}
+ 
++  ws@7.5.11: {}
++
++  ws@8.18.0: {}
++
+   ws@8.21.0: {}
+ 
+   xml-name-validator@5.0.0: {}

@@ -19,10 +19,23 @@ import {
   state,
   listVersions,
   effectiveClientId,
+  isGoogleClientId,
 } from './pipeline.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PORT = 8787;
+const ALLOWED_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
+
+/**
+ * Reject anything that isn't the patcher page on this machine talking to itself.
+ * The `Host` check blocks DNS-rebinding; the `Origin` check blocks a webpage you
+ * visit from driving the patcher cross-site (e.g. an `EventSource` to /api/run).
+ */
+const isLocalRequest = (request) => {
+  if (!ALLOWED_HOSTS.has(request.headers.host)) return false;
+  const { origin } = request.headers;
+  return !origin || [...ALLOWED_HOSTS].some((host) => origin === `http://${host}`);
+};
 // Per-builder override of the bundled default Google client, entered in the UI.
 // Gitignored — never shipped. The pipeline derives the build's .env.local + the
 // reverse-DNS deep-link scheme from whichever client id is effective.
@@ -63,6 +76,12 @@ const server = createServer(async (request, response) => {
       response.end(html);
       return;
     }
+    if (url.pathname.startsWith('/api/') && !isLocalRequest(request)) {
+      response.writeHead(403);
+      response.end('forbidden: this endpoint is local-only');
+      return;
+    }
+
     if (url.pathname === '/api/state') return sendJson(response, await state());
     if (url.pathname === '/api/tags') return sendJson(response, await listVersions());
 
@@ -72,6 +91,11 @@ const server = createServer(async (request, response) => {
         const clientId = String(body.clientId ?? '').trim();
         // A client id writes the override; an empty value clears it and reverts
         // to the bundled default. No secret — the iOS client type has none.
+        if (clientId && !isGoogleClientId(clientId)) {
+          response.writeHead(400);
+          response.end('not a Google client id (…apps.googleusercontent.com)');
+          return;
+        }
         if (clientId) {
           await writeFile(CREDS_FILE, `NEXT_PUBLIC_GOOGLE_CLIENT_ID=${clientId}\n`);
         } else {
