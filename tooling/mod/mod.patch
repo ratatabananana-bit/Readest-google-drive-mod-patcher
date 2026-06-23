@@ -101,497 +101,464 @@ index 13aab411..08f6a272 100644
      "foliate-js": "workspace:*",
      "franc-min": "^6.2.0",
 diff --git a/apps/readest-app/public/locales/ar/translation.json b/apps/readest-app/public/locales/ar/translation.json
-index 3712c4b1..44532daf 100644
+index 3712c4b1..838d00d6 100644
 --- a/apps/readest-app/public/locales/ar/translation.json
 +++ b/apps/readest-app/public/locales/ar/translation.json
-@@ -1912,5 +1912,9 @@
+@@ -1912,5 +1912,8 @@
    "Failed to save the image": "فشل حفظ الصورة",
    "Share Image": "مشاركة الصورة",
    "Save Image": "حفظ الصورة",
 -  "Image saved to gallery": "تم حفظ الصورة في المعرض"
 +  "Image saved to gallery": "تم حفظ الصورة في المعرض",
 +  "Recently read": "المقروءة مؤخرًا",
-+  "Hide from recent": "إخفاء من الأخيرة",
 +  "Hidden until you open it again": "مخفي حتى تفتحه مرة أخرى",
 +  "Show recently read": "إظهار المقروءة مؤخرًا"
  }
 diff --git a/apps/readest-app/public/locales/bn/translation.json b/apps/readest-app/public/locales/bn/translation.json
-index a6b67650..557501be 100644
+index a6b67650..027bf034 100644
 --- a/apps/readest-app/public/locales/bn/translation.json
 +++ b/apps/readest-app/public/locales/bn/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "ছবি সংরক্ষণ করা যায়নি",
    "Share Image": "ছবি শেয়ার করুন",
    "Save Image": "ছবি সংরক্ষণ করুন",
 -  "Image saved to gallery": "ছবি গ্যালারিতে সংরক্ষিত হয়েছে"
 +  "Image saved to gallery": "ছবি গ্যালারিতে সংরক্ষিত হয়েছে",
 +  "Recently read": "সম্প্রতি পঠিত",
-+  "Hide from recent": "সাম্প্রতিক থেকে লুকান",
 +  "Hidden until you open it again": "আবার না খোলা পর্যন্ত লুকানো থাকবে",
 +  "Show recently read": "সম্প্রতি পঠিত দেখান"
  }
 diff --git a/apps/readest-app/public/locales/bo/translation.json b/apps/readest-app/public/locales/bo/translation.json
-index 6fb44f00..434d41d0 100644
+index 6fb44f00..50c8cd71 100644
 --- a/apps/readest-app/public/locales/bo/translation.json
 +++ b/apps/readest-app/public/locales/bo/translation.json
-@@ -1747,5 +1747,9 @@
+@@ -1747,5 +1747,8 @@
    "Failed to save the image": "པར་རིས་ཉར་ཚགས་བྱས་མ་ཐུབ",
    "Share Image": "པར་རིས་མཉམ་སྤྱོད།",
    "Save Image": "པར་རིས་ཉར་ཚགས།",
 -  "Image saved to gallery": "པར་རིས་པར་མཛོད་ནང་ཉར་ཚགས་བྱས་ཟིན"
 +  "Image saved to gallery": "པར་རིས་པར་མཛོད་ནང་ཉར་ཚགས་བྱས་ཟིན",
 +  "Recently read": "ཉེ་ཆར་ཀློག་པ",
-+  "Hide from recent": "ཉེ་ཆར་ཁྲོད་ནས་སྦ་བ",
 +  "Hidden until you open it again": "ཁྱེད་ཀྱིས་སླར་ཡང་ཁ་ཕྱེ་བར་དུ་སྦས་ནས་ཡོད",
 +  "Show recently read": "ཉེ་ཆར་ཀློག་པ་སྟོན་པ"
  }
 diff --git a/apps/readest-app/public/locales/de/translation.json b/apps/readest-app/public/locales/de/translation.json
-index fe8dec53..3e10247b 100644
+index fe8dec53..877ba8d9 100644
 --- a/apps/readest-app/public/locales/de/translation.json
 +++ b/apps/readest-app/public/locales/de/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "Bild konnte nicht gespeichert werden",
    "Share Image": "Bild teilen",
    "Save Image": "Bild speichern",
 -  "Image saved to gallery": "Bild in der Galerie gespeichert"
 +  "Image saved to gallery": "Bild in der Galerie gespeichert",
 +  "Recently read": "Zuletzt gelesen",
-+  "Hide from recent": "Aus „Zuletzt gelesen“ ausblenden",
 +  "Hidden until you open it again": "Ausgeblendet, bis du es wieder öffnest",
 +  "Show recently read": "Zuletzt gelesen anzeigen"
  }
 diff --git a/apps/readest-app/public/locales/el/translation.json b/apps/readest-app/public/locales/el/translation.json
-index 30f856c3..3f5c3681 100644
+index 30f856c3..5e27a674 100644
 --- a/apps/readest-app/public/locales/el/translation.json
 +++ b/apps/readest-app/public/locales/el/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "Αποτυχία αποθήκευσης της εικόνας",
    "Share Image": "Κοινή χρήση εικόνας",
    "Save Image": "Αποθήκευση εικόνας",
 -  "Image saved to gallery": "Η εικόνα αποθηκεύτηκε στη συλλογή"
 +  "Image saved to gallery": "Η εικόνα αποθηκεύτηκε στη συλλογή",
 +  "Recently read": "Πρόσφατα αναγνωσμένα",
-+  "Hide from recent": "Απόκρυψη από τα πρόσφατα",
 +  "Hidden until you open it again": "Κρυφό μέχρι να το ανοίξετε ξανά",
 +  "Show recently read": "Εμφάνιση πρόσφατα αναγνωσμένων"
  }
 diff --git a/apps/readest-app/public/locales/es/translation.json b/apps/readest-app/public/locales/es/translation.json
-index 123a0196..be9c7d69 100644
+index 123a0196..1448034a 100644
 --- a/apps/readest-app/public/locales/es/translation.json
 +++ b/apps/readest-app/public/locales/es/translation.json
-@@ -1813,5 +1813,9 @@
+@@ -1813,5 +1813,8 @@
    "Failed to save the image": "No se pudo guardar la imagen",
    "Share Image": "Compartir imagen",
    "Save Image": "Guardar imagen",
 -  "Image saved to gallery": "Imagen guardada en la galería"
 +  "Image saved to gallery": "Imagen guardada en la galería",
 +  "Recently read": "Leídos recientemente",
-+  "Hide from recent": "Ocultar de recientes",
 +  "Hidden until you open it again": "Oculto hasta que vuelvas a abrirlo",
 +  "Show recently read": "Mostrar leídos recientemente"
  }
 diff --git a/apps/readest-app/public/locales/fa/translation.json b/apps/readest-app/public/locales/fa/translation.json
-index 8e4b44c2..dcf94611 100644
+index 8e4b44c2..81724fd8 100644
 --- a/apps/readest-app/public/locales/fa/translation.json
 +++ b/apps/readest-app/public/locales/fa/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "ذخیره تصویر ناموفق بود",
    "Share Image": "اشتراک‌گذاری تصویر",
    "Save Image": "ذخیره تصویر",
 -  "Image saved to gallery": "تصویر در گالری ذخیره شد"
 +  "Image saved to gallery": "تصویر در گالری ذخیره شد",
 +  "Recently read": "اخیراً خوانده‌شده",
-+  "Hide from recent": "پنهان کردن از اخیرها",
 +  "Hidden until you open it again": "تا زمانی که دوباره بازش کنید پنهان می‌ماند",
 +  "Show recently read": "نمایش موارد اخیراً خوانده‌شده"
  }
 diff --git a/apps/readest-app/public/locales/fr/translation.json b/apps/readest-app/public/locales/fr/translation.json
-index 3a42c945..579130e7 100644
+index 3a42c945..bfa55854 100644
 --- a/apps/readest-app/public/locales/fr/translation.json
 +++ b/apps/readest-app/public/locales/fr/translation.json
-@@ -1813,5 +1813,9 @@
+@@ -1813,5 +1813,8 @@
    "Failed to save the image": "Échec de l'enregistrement de l'image",
    "Share Image": "Partager l'image",
    "Save Image": "Enregistrer l'image",
 -  "Image saved to gallery": "Image enregistrée dans la galerie"
 +  "Image saved to gallery": "Image enregistrée dans la galerie",
 +  "Recently read": "Lus récemment",
-+  "Hide from recent": "Masquer des récents",
 +  "Hidden until you open it again": "Masqué jusqu’à ce que vous le rouvriez",
 +  "Show recently read": "Afficher les lus récemment"
  }
 diff --git a/apps/readest-app/public/locales/he/translation.json b/apps/readest-app/public/locales/he/translation.json
-index d84068f5..ba37542d 100644
+index d84068f5..f9e2dc21 100644
 --- a/apps/readest-app/public/locales/he/translation.json
 +++ b/apps/readest-app/public/locales/he/translation.json
-@@ -1813,5 +1813,9 @@
+@@ -1813,5 +1813,8 @@
    "Failed to save the image": "שמירת התמונה נכשלה",
    "Share Image": "שיתוף התמונה",
    "Save Image": "שמירת התמונה",
 -  "Image saved to gallery": "התמונה נשמרה בגלריה"
 +  "Image saved to gallery": "התמונה נשמרה בגלריה",
 +  "Recently read": "נקראו לאחרונה",
-+  "Hide from recent": "הסתר מהאחרונים",
 +  "Hidden until you open it again": "מוסתר עד שתפתח שוב",
 +  "Show recently read": "הצג נקראו לאחרונה"
  }
 diff --git a/apps/readest-app/public/locales/hi/translation.json b/apps/readest-app/public/locales/hi/translation.json
-index dfd0e021..91b66664 100644
+index dfd0e021..8822df93 100644
 --- a/apps/readest-app/public/locales/hi/translation.json
 +++ b/apps/readest-app/public/locales/hi/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "छवि सहेजने में विफल",
    "Share Image": "छवि साझा करें",
    "Save Image": "छवि सहेजें",
 -  "Image saved to gallery": "छवि गैलरी में सहेजी गई"
 +  "Image saved to gallery": "छवि गैलरी में सहेजी गई",
 +  "Recently read": "हाल ही में पढ़े गए",
-+  "Hide from recent": "हाल के से छिपाएँ",
 +  "Hidden until you open it again": "जब तक आप इसे दोबारा नहीं खोलते, यह छिपा रहेगा",
 +  "Show recently read": "हाल ही में पढ़े गए दिखाएँ"
  }
 diff --git a/apps/readest-app/public/locales/hu/translation.json b/apps/readest-app/public/locales/hu/translation.json
-index af143ab9..19a31981 100644
+index af143ab9..0425fedd 100644
 --- a/apps/readest-app/public/locales/hu/translation.json
 +++ b/apps/readest-app/public/locales/hu/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "Nem sikerült menteni a képet",
    "Share Image": "Kép megosztása",
    "Save Image": "Kép mentése",
 -  "Image saved to gallery": "A kép elmentve a galériába"
 +  "Image saved to gallery": "A kép elmentve a galériába",
 +  "Recently read": "Nemrég olvasott",
-+  "Hide from recent": "Elrejtés a legutóbbiak közül",
 +  "Hidden until you open it again": "Rejtve marad, amíg újra meg nem nyitod",
 +  "Show recently read": "Nemrég olvasottak megjelenítése"
  }
 diff --git a/apps/readest-app/public/locales/id/translation.json b/apps/readest-app/public/locales/id/translation.json
-index e661d844..23c44667 100644
+index e661d844..88c5a5b1 100644
 --- a/apps/readest-app/public/locales/id/translation.json
 +++ b/apps/readest-app/public/locales/id/translation.json
-@@ -1747,5 +1747,9 @@
+@@ -1747,5 +1747,8 @@
    "Failed to save the image": "Gagal menyimpan gambar",
    "Share Image": "Bagikan Gambar",
    "Save Image": "Simpan Gambar",
 -  "Image saved to gallery": "Gambar disimpan ke galeri"
 +  "Image saved to gallery": "Gambar disimpan ke galeri",
 +  "Recently read": "Baru dibaca",
-+  "Hide from recent": "Sembunyikan dari terbaru",
 +  "Hidden until you open it again": "Disembunyikan sampai Anda membukanya lagi",
 +  "Show recently read": "Tampilkan baru dibaca"
  }
 diff --git a/apps/readest-app/public/locales/it/translation.json b/apps/readest-app/public/locales/it/translation.json
-index 733e57dc..de092afb 100644
+index 733e57dc..e3364a7d 100644
 --- a/apps/readest-app/public/locales/it/translation.json
 +++ b/apps/readest-app/public/locales/it/translation.json
-@@ -1813,5 +1813,9 @@
+@@ -1813,5 +1813,8 @@
    "Failed to save the image": "Impossibile salvare l'immagine",
    "Share Image": "Condividi immagine",
    "Save Image": "Salva immagine",
 -  "Image saved to gallery": "Immagine salvata nella galleria"
 +  "Image saved to gallery": "Immagine salvata nella galleria",
 +  "Recently read": "Letti di recente",
-+  "Hide from recent": "Nascondi dai recenti",
 +  "Hidden until you open it again": "Nascosto finché non lo riapri",
 +  "Show recently read": "Mostra letti di recente"
  }
 diff --git a/apps/readest-app/public/locales/ja/translation.json b/apps/readest-app/public/locales/ja/translation.json
-index cc5e377b..3ca5baeb 100644
+index cc5e377b..56f100c0 100644
 --- a/apps/readest-app/public/locales/ja/translation.json
 +++ b/apps/readest-app/public/locales/ja/translation.json
-@@ -1747,5 +1747,9 @@
+@@ -1747,5 +1747,8 @@
    "Failed to save the image": "画像の保存に失敗しました",
    "Share Image": "画像を共有",
    "Save Image": "画像を保存",
 -  "Image saved to gallery": "画像をギャラリーに保存しました"
 +  "Image saved to gallery": "画像をギャラリーに保存しました",
 +  "Recently read": "最近読んだ本",
-+  "Hide from recent": "最近の一覧から非表示",
 +  "Hidden until you open it again": "もう一度開くまで非表示にします",
 +  "Show recently read": "最近読んだ本を表示"
  }
 diff --git a/apps/readest-app/public/locales/ko/translation.json b/apps/readest-app/public/locales/ko/translation.json
-index 8a07f751..c5b29382 100644
+index 8a07f751..1fbbb419 100644
 --- a/apps/readest-app/public/locales/ko/translation.json
 +++ b/apps/readest-app/public/locales/ko/translation.json
-@@ -1747,5 +1747,9 @@
+@@ -1747,5 +1747,8 @@
    "Failed to save the image": "이미지를 저장하지 못했습니다",
    "Share Image": "이미지 공유",
    "Save Image": "이미지 저장",
 -  "Image saved to gallery": "이미지를 갤러리에 저장했습니다"
 +  "Image saved to gallery": "이미지를 갤러리에 저장했습니다",
 +  "Recently read": "최근 읽은 책",
-+  "Hide from recent": "최근 목록에서 숨기기",
 +  "Hidden until you open it again": "다시 열 때까지 숨겨집니다",
 +  "Show recently read": "최근 읽은 책 표시"
  }
 diff --git a/apps/readest-app/public/locales/ms/translation.json b/apps/readest-app/public/locales/ms/translation.json
-index 7322cba4..26208f5a 100644
+index 7322cba4..347e1047 100644
 --- a/apps/readest-app/public/locales/ms/translation.json
 +++ b/apps/readest-app/public/locales/ms/translation.json
-@@ -1747,5 +1747,9 @@
+@@ -1747,5 +1747,8 @@
    "Failed to save the image": "Gagal menyimpan imej",
    "Share Image": "Kongsi Imej",
    "Save Image": "Simpan Imej",
 -  "Image saved to gallery": "Imej disimpan ke galeri"
 +  "Image saved to gallery": "Imej disimpan ke galeri",
 +  "Recently read": "Baru dibaca",
-+  "Hide from recent": "Sembunyikan daripada terbaru",
 +  "Hidden until you open it again": "Disembunyikan sehingga anda membukanya semula",
 +  "Show recently read": "Tunjukkan baru dibaca"
  }
 diff --git a/apps/readest-app/public/locales/nl/translation.json b/apps/readest-app/public/locales/nl/translation.json
-index 41d70510..5f223221 100644
+index 41d70510..1786dc17 100644
 --- a/apps/readest-app/public/locales/nl/translation.json
 +++ b/apps/readest-app/public/locales/nl/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "Kan de afbeelding niet opslaan",
    "Share Image": "Afbeelding delen",
    "Save Image": "Afbeelding opslaan",
 -  "Image saved to gallery": "Afbeelding opgeslagen in de galerij"
 +  "Image saved to gallery": "Afbeelding opgeslagen in de galerij",
 +  "Recently read": "Onlangs gelezen",
-+  "Hide from recent": "Verbergen uit recent",
 +  "Hidden until you open it again": "Verborgen totdat je het opnieuw opent",
 +  "Show recently read": "Onlangs gelezen tonen"
  }
 diff --git a/apps/readest-app/public/locales/pl/translation.json b/apps/readest-app/public/locales/pl/translation.json
-index 6f415a81..cf48296f 100644
+index 6f415a81..8bda4bcb 100644
 --- a/apps/readest-app/public/locales/pl/translation.json
 +++ b/apps/readest-app/public/locales/pl/translation.json
-@@ -1846,5 +1846,9 @@
+@@ -1846,5 +1846,8 @@
    "Failed to save the image": "Nie udało się zapisać obrazu",
    "Share Image": "Udostępnij obraz",
    "Save Image": "Zapisz obraz",
 -  "Image saved to gallery": "Obraz zapisano w galerii"
 +  "Image saved to gallery": "Obraz zapisano w galerii",
 +  "Recently read": "Ostatnio czytane",
-+  "Hide from recent": "Ukryj z ostatnich",
 +  "Hidden until you open it again": "Ukryte, dopóki nie otworzysz ponownie",
 +  "Show recently read": "Pokaż ostatnio czytane"
  }
 diff --git a/apps/readest-app/public/locales/pt-BR/translation.json b/apps/readest-app/public/locales/pt-BR/translation.json
-index c2e0099a..039f555a 100644
+index c2e0099a..54812e3a 100644
 --- a/apps/readest-app/public/locales/pt-BR/translation.json
 +++ b/apps/readest-app/public/locales/pt-BR/translation.json
-@@ -1813,5 +1813,9 @@
+@@ -1813,5 +1813,8 @@
    "Failed to save the image": "Falha ao salvar a imagem",
    "Share Image": "Compartilhar imagem",
    "Save Image": "Salvar imagem",
 -  "Image saved to gallery": "Imagem salva na galeria"
 +  "Image saved to gallery": "Imagem salva na galeria",
 +  "Recently read": "Lidos recentemente",
-+  "Hide from recent": "Ocultar dos recentes",
 +  "Hidden until you open it again": "Oculto até você abrir novamente",
 +  "Show recently read": "Mostrar lidos recentemente"
  }
 diff --git a/apps/readest-app/public/locales/pt/translation.json b/apps/readest-app/public/locales/pt/translation.json
-index af410932..3f318438 100644
+index af410932..3a91936b 100644
 --- a/apps/readest-app/public/locales/pt/translation.json
 +++ b/apps/readest-app/public/locales/pt/translation.json
-@@ -1813,5 +1813,9 @@
+@@ -1813,5 +1813,8 @@
    "Failed to save the image": "Falha ao salvar a imagem",
    "Share Image": "Partilhar imagem",
    "Save Image": "Salvar imagem",
 -  "Image saved to gallery": "Imagem guardada na galeria"
 +  "Image saved to gallery": "Imagem guardada na galeria",
 +  "Recently read": "Lidos recentemente",
-+  "Hide from recent": "Ocultar dos recentes",
 +  "Hidden until you open it again": "Oculto até abrir novamente",
 +  "Show recently read": "Mostrar lidos recentemente"
  }
 diff --git a/apps/readest-app/public/locales/ro/translation.json b/apps/readest-app/public/locales/ro/translation.json
-index 4267eccd..79cff9ae 100644
+index 4267eccd..a048ffb0 100644
 --- a/apps/readest-app/public/locales/ro/translation.json
 +++ b/apps/readest-app/public/locales/ro/translation.json
-@@ -1813,5 +1813,9 @@
+@@ -1813,5 +1813,8 @@
    "Failed to save the image": "Salvarea imaginii a eșuat",
    "Share Image": "Partajează imaginea",
    "Save Image": "Salvează imaginea",
 -  "Image saved to gallery": "Imagine salvată în galerie"
 +  "Image saved to gallery": "Imagine salvată în galerie",
 +  "Recently read": "Citite recent",
-+  "Hide from recent": "Ascunde din recente",
 +  "Hidden until you open it again": "Ascunsă până o redeschizi",
 +  "Show recently read": "Arată citite recent"
  }
 diff --git a/apps/readest-app/public/locales/ru/translation.json b/apps/readest-app/public/locales/ru/translation.json
-index 4c575fe8..56b3ca80 100644
+index 4c575fe8..04bc02cf 100644
 --- a/apps/readest-app/public/locales/ru/translation.json
 +++ b/apps/readest-app/public/locales/ru/translation.json
-@@ -1846,5 +1846,9 @@
+@@ -1846,5 +1846,8 @@
    "Failed to save the image": "Не удалось сохранить изображение",
    "Share Image": "Поделиться изображением",
    "Save Image": "Сохранить изображение",
 -  "Image saved to gallery": "Изображение сохранено в галерее"
 +  "Image saved to gallery": "Изображение сохранено в галерее",
 +  "Recently read": "Недавно прочитанные",
-+  "Hide from recent": "Скрыть из недавних",
 +  "Hidden until you open it again": "Скрыто, пока вы не откроете снова",
 +  "Show recently read": "Показывать недавно прочитанные"
  }
 diff --git a/apps/readest-app/public/locales/si/translation.json b/apps/readest-app/public/locales/si/translation.json
-index 568cd4e5..55e4044e 100644
+index 568cd4e5..336a734a 100644
 --- a/apps/readest-app/public/locales/si/translation.json
 +++ b/apps/readest-app/public/locales/si/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "රූපය සුරැකීමට අසමත් විය",
    "Share Image": "රූපය බෙදාගන්න",
    "Save Image": "රූපය සුරකින්න",
 -  "Image saved to gallery": "රූපය ගැලරියට සුරැකිණි"
 +  "Image saved to gallery": "රූපය ගැලරියට සුරැකිණි",
 +  "Recently read": "මෑතකදී කියවූ",
-+  "Hide from recent": "මෑත ලැයිස්තුවෙන් සඟවන්න",
 +  "Hidden until you open it again": "ඔබ නැවත විවෘත කරන තුරු සඟවා ඇත",
 +  "Show recently read": "මෑතකදී කියවූ ඒවා පෙන්වන්න"
  }
 diff --git a/apps/readest-app/public/locales/sl/translation.json b/apps/readest-app/public/locales/sl/translation.json
-index 63ad38bf..ef77cce5 100644
+index 63ad38bf..936d9d05 100644
 --- a/apps/readest-app/public/locales/sl/translation.json
 +++ b/apps/readest-app/public/locales/sl/translation.json
-@@ -1846,5 +1846,9 @@
+@@ -1846,5 +1846,8 @@
    "Failed to save the image": "Slike ni bilo mogoče shraniti",
    "Share Image": "Deli sliko",
    "Save Image": "Shrani sliko",
 -  "Image saved to gallery": "Slika je shranjena v galerijo"
 +  "Image saved to gallery": "Slika je shranjena v galerijo",
 +  "Recently read": "Nedavno brano",
-+  "Hide from recent": "Skrij iz nedavnih",
 +  "Hidden until you open it again": "Skrito, dokler ga znova ne odprete",
 +  "Show recently read": "Pokaži nedavno brano"
  }
 diff --git a/apps/readest-app/public/locales/sv/translation.json b/apps/readest-app/public/locales/sv/translation.json
-index a42bb557..1d6c8aa7 100644
+index a42bb557..07325fe7 100644
 --- a/apps/readest-app/public/locales/sv/translation.json
 +++ b/apps/readest-app/public/locales/sv/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "Det gick inte att spara bilden",
    "Share Image": "Dela bild",
    "Save Image": "Spara bild",
 -  "Image saved to gallery": "Bilden har sparats i galleriet"
 +  "Image saved to gallery": "Bilden har sparats i galleriet",
 +  "Recently read": "Nyligen lästa",
-+  "Hide from recent": "Dölj från senaste",
 +  "Hidden until you open it again": "Dold tills du öppnar den igen",
 +  "Show recently read": "Visa nyligen lästa"
  }
 diff --git a/apps/readest-app/public/locales/ta/translation.json b/apps/readest-app/public/locales/ta/translation.json
-index a2fa6bad..31b54270 100644
+index a2fa6bad..63205ccf 100644
 --- a/apps/readest-app/public/locales/ta/translation.json
 +++ b/apps/readest-app/public/locales/ta/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "படத்தைச் சேமிக்க முடியவில்லை",
    "Share Image": "படத்தைப் பகிர்",
    "Save Image": "படத்தைச் சேமி",
 -  "Image saved to gallery": "படம் கேலரியில் சேமிக்கப்பட்டது"
 +  "Image saved to gallery": "படம் கேலரியில் சேமிக்கப்பட்டது",
 +  "Recently read": "சமீபத்தில் படித்தவை",
-+  "Hide from recent": "சமீபத்தியவற்றிலிருந்து மறை",
 +  "Hidden until you open it again": "மீண்டும் திறக்கும் வரை மறைக்கப்படும்",
 +  "Show recently read": "சமீபத்தில் படித்தவற்றைக் காட்டு"
  }
 diff --git a/apps/readest-app/public/locales/th/translation.json b/apps/readest-app/public/locales/th/translation.json
-index 2a4c47a0..cb108608 100644
+index 2a4c47a0..f2c7d9b3 100644
 --- a/apps/readest-app/public/locales/th/translation.json
 +++ b/apps/readest-app/public/locales/th/translation.json
-@@ -1747,5 +1747,9 @@
+@@ -1747,5 +1747,8 @@
    "Failed to save the image": "ไม่สามารถบันทึกรูปภาพได้",
    "Share Image": "แชร์รูปภาพ",
    "Save Image": "บันทึกรูปภาพ",
 -  "Image saved to gallery": "บันทึกรูปภาพไปยังแกลเลอรีแล้ว"
 +  "Image saved to gallery": "บันทึกรูปภาพไปยังแกลเลอรีแล้ว",
 +  "Recently read": "อ่านล่าสุด",
-+  "Hide from recent": "ซ่อนจากรายการล่าสุด",
 +  "Hidden until you open it again": "ซ่อนไว้จนกว่าคุณจะเปิดอีกครั้ง",
 +  "Show recently read": "แสดงรายการอ่านล่าสุด"
  }
 diff --git a/apps/readest-app/public/locales/tr/translation.json b/apps/readest-app/public/locales/tr/translation.json
-index 24ed739a..dbdbb5ac 100644
+index 24ed739a..06435e89 100644
 --- a/apps/readest-app/public/locales/tr/translation.json
 +++ b/apps/readest-app/public/locales/tr/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "Görsel kaydedilemedi",
    "Share Image": "Görseli Paylaş",
    "Save Image": "Görseli Kaydet",
 -  "Image saved to gallery": "Görsel galeriye kaydedildi"
 +  "Image saved to gallery": "Görsel galeriye kaydedildi",
 +  "Recently read": "Son okunanlar",
-+  "Hide from recent": "Sonlardan gizle",
 +  "Hidden until you open it again": "Yeniden açana kadar gizli kalır",
 +  "Show recently read": "Son okunanları göster"
  }
 diff --git a/apps/readest-app/public/locales/uk/translation.json b/apps/readest-app/public/locales/uk/translation.json
-index a5593bef..4a944244 100644
+index a5593bef..f7231927 100644
 --- a/apps/readest-app/public/locales/uk/translation.json
 +++ b/apps/readest-app/public/locales/uk/translation.json
-@@ -1846,5 +1846,9 @@
+@@ -1846,5 +1846,8 @@
    "Failed to save the image": "Не вдалося зберегти зображення",
    "Share Image": "Поділитися зображенням",
    "Save Image": "Зберегти зображення",
 -  "Image saved to gallery": "Зображення збережено в галереї"
 +  "Image saved to gallery": "Зображення збережено в галереї",
 +  "Recently read": "Нещодавно прочитані",
-+  "Hide from recent": "Сховати з нещодавніх",
 +  "Hidden until you open it again": "Сховано, доки ви не відкриєте знову",
 +  "Show recently read": "Показувати нещодавно прочитані"
  }
 diff --git a/apps/readest-app/public/locales/uz/translation.json b/apps/readest-app/public/locales/uz/translation.json
-index 51aafffe..c6c72b03 100644
+index 51aafffe..27270648 100644
 --- a/apps/readest-app/public/locales/uz/translation.json
 +++ b/apps/readest-app/public/locales/uz/translation.json
-@@ -1780,5 +1780,9 @@
+@@ -1780,5 +1780,8 @@
    "Failed to save the image": "Rasmni saqlab bo'lmadi",
    "Share Image": "Rasmni ulashish",
    "Save Image": "Rasmni saqlash",
 -  "Image saved to gallery": "Rasm galereyaga saqlandi"
 +  "Image saved to gallery": "Rasm galereyaga saqlandi",
 +  "Recently read": "Yaqinda o‘qilganlar",
-+  "Hide from recent": "Yaqindagilardan yashirish",
 +  "Hidden until you open it again": "Qayta ochmaguningizcha yashirin qoladi",
 +  "Show recently read": "Yaqinda o‘qilganlarni ko‘rsatish"
  }
 diff --git a/apps/readest-app/public/locales/vi/translation.json b/apps/readest-app/public/locales/vi/translation.json
-index 692a435b..0a7d53be 100644
+index 692a435b..bac22284 100644
 --- a/apps/readest-app/public/locales/vi/translation.json
 +++ b/apps/readest-app/public/locales/vi/translation.json
-@@ -1747,5 +1747,9 @@
+@@ -1747,5 +1747,8 @@
    "Failed to save the image": "Không thể lưu hình ảnh",
    "Share Image": "Chia sẻ hình ảnh",
    "Save Image": "Lưu hình ảnh",
 -  "Image saved to gallery": "Đã lưu hình ảnh vào thư viện"
 +  "Image saved to gallery": "Đã lưu hình ảnh vào thư viện",
 +  "Recently read": "Đã đọc gần đây",
-+  "Hide from recent": "Ẩn khỏi gần đây",
 +  "Hidden until you open it again": "Ẩn cho đến khi bạn mở lại",
 +  "Show recently read": "Hiển thị đã đọc gần đây"
  }
 diff --git a/apps/readest-app/public/locales/zh-CN/translation.json b/apps/readest-app/public/locales/zh-CN/translation.json
-index 6d750507..0ae32a74 100644
+index 6d750507..a9b5b52f 100644
 --- a/apps/readest-app/public/locales/zh-CN/translation.json
 +++ b/apps/readest-app/public/locales/zh-CN/translation.json
-@@ -1747,5 +1747,9 @@
+@@ -1747,5 +1747,8 @@
    "Failed to save the image": "图片保存失败",
    "Share Image": "分享图片",
    "Save Image": "保存图片",
 -  "Image saved to gallery": "图片已保存到相册"
 +  "Image saved to gallery": "图片已保存到相册",
 +  "Recently read": "最近阅读",
-+  "Hide from recent": "从最近中隐藏",
 +  "Hidden until you open it again": "隐藏，直到你再次打开",
 +  "Show recently read": "显示最近阅读"
  }
 diff --git a/apps/readest-app/public/locales/zh-TW/translation.json b/apps/readest-app/public/locales/zh-TW/translation.json
-index 8cbbf1e3..74864927 100644
+index 8cbbf1e3..e12acfb7 100644
 --- a/apps/readest-app/public/locales/zh-TW/translation.json
 +++ b/apps/readest-app/public/locales/zh-TW/translation.json
-@@ -1747,5 +1747,9 @@
+@@ -1747,5 +1747,8 @@
    "Failed to save the image": "圖片儲存失敗",
    "Share Image": "分享圖片",
    "Save Image": "儲存圖片",
 -  "Image saved to gallery": "圖片已儲存至相簿"
 +  "Image saved to gallery": "圖片已儲存至相簿",
 +  "Recently read": "最近閱讀",
-+  "Hide from recent": "從最近項目中隱藏",
 +  "Hidden until you open it again": "隱藏，直到你再次開啟",
 +  "Show recently read": "顯示最近閱讀"
  }
@@ -4961,14 +4928,13 @@ index 00000000..2a5f030b
 +};
 diff --git a/apps/readest-app/src/app/library/components/RecentShelf.tsx b/apps/readest-app/src/app/library/components/RecentShelf.tsx
 new file mode 100644
-index 00000000..90b9a3f8
+index 00000000..41615947
 --- /dev/null
 +++ b/apps/readest-app/src/app/library/components/RecentShelf.tsx
-@@ -0,0 +1,180 @@
+@@ -0,0 +1,176 @@
 +import clsx from 'clsx';
-+import { useCallback, useEffect } from 'react';
++import { useCallback, useEffect, useRef } from 'react';
 +import useEmblaCarousel from 'embla-carousel-react';
-+import { Menu, type MenuItemOptions } from '@tauri-apps/api/menu';
 +import { Book } from '@/types/book';
 +import { useEnv } from '@/context/EnvContext';
 +import { useSettingsStore } from '@/store/settingsStore';
@@ -4984,7 +4950,7 @@ index 00000000..90b9a3f8
 + */
 +export const RECENT_SHELF_BOOK_COUNT = 12;
 +
-+/** Confirmation toast lifetime when a book is hidden on a touch device (ms). */
++/** Confirmation toast lifetime after a book is hidden (ms). */
 +const HIDE_TOAST_TIMEOUT_MS = 2000;
 +
 +/**
@@ -5069,8 +5035,15 @@ index 00000000..90b9a3f8
 + */
 +const RecentShelf: React.FC<RecentShelfProps> = ({ books, onOpenBook }) => {
 +  const _ = useTranslation();
-+  const { envConfig, appService } = useEnv();
++  const { envConfig } = useEnv();
 +  const { settings } = useSettingsStore();
++  // One hide per press: a hide disarms further hides until the pointer lifts, so
++  // when the row reflows and the next cover slides under a still-held finger it
++  // is not hidden in turn. Re-armed on pointer up/cancel (see the row handlers).
++  const canHideRef = useRef(true);
++  const rearmHide = useCallback(() => {
++    canHideRef.current = true;
++  }, []);
 +  const [emblaRef, emblaApi] = useEmblaCarousel({
 +    align: 'start',
 +    containScroll: 'trimSnaps',
@@ -5096,22 +5069,8 @@ index 00000000..90b9a3f8
 +
 +  const requestHide = useCallback(
 +    async (book: Book) => {
-+      // Desktop has a native context menu, so offer the action explicitly.
-+      // Touch platforms have no context menu (see BookshelfItem) — hide
-+      // immediately and confirm with a toast that explains how it comes back.
-+      if (appService?.hasContextMenu) {
-+        const items: MenuItemOptions[] = [
-+          {
-+            text: _('Hide from recent'),
-+            action: async () => {
-+              await hideBook(book);
-+            },
-+          },
-+        ];
-+        const menu = await Menu.new({ items });
-+        await menu.popup();
-+        return;
-+      }
++      if (!canHideRef.current) return; // already hid one this press — wait for a lift
++      canHideRef.current = false;
 +      await hideBook(book);
 +      eventDispatcher.dispatch('toast', {
 +        type: 'info',
@@ -5119,11 +5078,15 @@ index 00000000..90b9a3f8
 +        timeout: HIDE_TOAST_TIMEOUT_MS,
 +      });
 +    },
-+    [appService, _, hideBook],
++    [_, hideBook],
 +  );
 +
 +  return (
-+    <div className='recent-shelf select-none pt-3'>
++    <div
++      className='recent-shelf select-none pt-3'
++      onPointerUp={rearmHide}
++      onPointerCancel={rearmHide}
++    >
 +      <h3 className='text-base-content/60 mb-1 ps-4 text-xs font-medium sm:ps-6'>
 +        {_('Recently read')}
 +      </h3>
