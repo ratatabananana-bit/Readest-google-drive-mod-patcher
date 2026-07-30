@@ -49,16 +49,14 @@ const CLONE_SOURCE = process.env.READEST_CLONE_SOURCE || READEST_URL;
 const IS_WIN = process.platform === 'win32';
 const LOCALES = 'apps/readest-app/public/locales/';
 
-const SUBMODULES = [
-  'packages/foliate-js',
-  'packages/js-mdict',
-  'packages/simplecc-wasm',
-  'packages/tauri',
-  'packages/tauri-plugins',
-  'packages/qcms',
-  'apps/readest-app/src-tauri/plugins/tauri-plugin-turso',
-  'apps/readest-app/src-tauri/plugins/tauri-plugin-webview-upgrade',
-];
+/**
+ * Submodules that are NOT build inputs (agent-tooling repos). Everything else in
+ * the clone's `.gitmodules` is needed to build, so the set is READ FROM THE
+ * CHECKOUT rather than hardcoded here — a hardcoded list silently misses
+ * submodules upstream adds later (v0.11.20 added `packages/tao`, whose absence
+ * failed the Rust build with "failed to load source for dependency `tao`").
+ */
+const NON_BUILD_SUBMODULES = ['apps/readest-app/.claude/skills/gstack'];
 const VENDOR_LEAVES = [
   'prepare-public-vendor',
   'copy-pdfjs-js',
@@ -145,6 +143,15 @@ function captureGit(args, cwd = WORK_DIR) {
     child.on('close', (code) => res({ code: code ?? 1, out: out.trim() }));
     child.on('error', () => res({ code: 1, out: '' }));
   });
+}
+
+/** Build-input submodule paths, as declared by the clone's own `.gitmodules`. */
+async function buildSubmodulePaths() {
+  const { out } = await captureGit(['config', '-f', '.gitmodules', '--get-regexp', '^submodule\\..*\\.path$']);
+  return out
+    .split('\n')
+    .map((line) => line.trim().split(/\s+/)[1])
+    .filter((path) => path && !NON_BUILD_SUBMODULES.includes(path));
 }
 
 const fail = (onLine, what) => {
@@ -364,8 +371,28 @@ async function applyAndroidPostInitFixes(onLine, release) {
 
   const gradle = join(gen, 'app', 'build.gradle.kts');
   let g = await readFile(gradle, 'utf8');
+  // The restored committed build.gradle.kts hardcodes upstream's base package in
+  // `namespace` + `applicationId`. When the mod renames the app (e.g. "Readest GMod" /
+  // com.readestgmod.app, so it installs alongside official Readest), repoint both to the
+  // configured identifier — `tauri android init` already generated the Kotlin scaffolding
+  // + buildSrc under the new package, so the gradle must agree. No-op for an unchanged id.
+  const gradleBasePkg = g.match(/applicationId\s*=\s*"([^"]+)"/)?.[1];
+  if (gradleBasePkg && gradleBasePkg !== conf.identifier)
+    g = g.split(gradleBasePkg).join(conf.identifier);
   if (!g.includes('missingDimensionStrategy'))
     g = g.replace('defaultConfig {', 'defaultConfig {\n        missingDimensionStrategy("store", "foss")');
+  // Readest's committed AndroidManifest.xml (restored below) references
+  // `${sentryDsn}` and `${usesCleartextTraffic}` placeholders that upstream's
+  // committed build.gradle.kts defines but `tauri android init` regenerates
+  // without — the merge fails ("no value for <sentryDsn> is provided") unless we
+  // supply them. Empty DSN disables Sentry auto-init (the mod ships no telemetry;
+  // the meta-data is inert with no SDK dep and no provider); cleartext off is the
+  // secure default (Drive + OAuth are all HTTPS). Mirrors upstream's release values.
+  if (!g.includes('manifestPlaceholders["sentryDsn"]'))
+    g = g.replace(
+      'defaultConfig {',
+      'defaultConfig {\n        manifestPlaceholders["sentryDsn"] = ""\n        manifestPlaceholders["usesCleartextTraffic"] = "false"',
+    );
   // The generated `release` build type has no signingConfig, so a release APK would
   // be unsigned (uninstallable). Reuse the debug signing config — a debug-signed
   // release build is smaller (optimized + minified) and fine to sideload.
@@ -415,12 +442,42 @@ async function applyAndroidPostInitFixes(onLine, release) {
     const basePkg = committed.match(/^package\s+(\S+)/m)?.[1];
     const restored = basePkg ? committed.split(basePkg).join(conf.identifier) : committed;
     await writeFile(join(gen, 'app', 'src', 'main', 'java', pkgPath, 'MainActivity.kt'), restored);
+    // The full gen/android restore also checked the committed MainActivity out at its
+    // BASE-package path. When renamed, that stray copy keeps `package <base>` + an
+    // unqualified `R` that resolves to the (nonexistent) base R class → Kotlin compile
+    // fails. The repointed copy now lives at pkgPath, so drop the stray base one.
+    if (basePkg && basePkg !== conf.identifier)
+      await rm(join(WORK_DIR, committedMainRel), { force: true });
     onLine('==> Android: restored Readest MainActivity (folder-picker result routing + key handling)');
   }
 
   onLine(
     `==> Applied Android post-init fixes (pnpm wrapper, FOSS flavor${release ? ', release signing + R8 keep-rules' : ''})`,
   );
+}
+
+/**
+ * Stop lingering Gradle daemons before wiping gen/android. A daemon from a prior
+ * build keeps `app/build/**` (notably classes.dex) open, so the `rm -rf gen/android`
+ * below fails with EBUSY on a rebuild. Windows-only + targeted at java processes
+ * whose command line names the Gradle daemon, so it never touches other Java. Best-effort.
+ */
+async function stopGradleDaemons(onLine) {
+  if (!IS_WIN) return;
+  try {
+    execFileSync(
+      'powershell',
+      [
+        '-NoProfile',
+        '-Command',
+        "Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" | Where-Object { $_.CommandLine -match 'GradleDaemon' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }",
+      ],
+      { stdio: 'ignore' },
+    );
+    onLine('==> Android: stopped lingering Gradle daemons (avoids gen/android EBUSY lock)');
+  } catch {
+    // No daemons running, or nothing to stop — the rm below proceeds regardless.
+  }
 }
 
 /**
@@ -431,6 +488,10 @@ async function applyAndroidPostInitFixes(onLine, release) {
  * SDK is present the exe is still the deliverable, so it logs and skips.
  */
 export async function buildAndroidApk(onLine, release) {
+  if (process.env['PATCHER_SKIP_ANDROID'] === '1') {
+    onLine('==> PATCHER_SKIP_ANDROID=1 — skipping APK build (Windows exe only).');
+    return 0;
+  }
   const env = androidEnv();
   if (!env.ANDROID_HOME || !existsSync(env.ANDROID_HOME)) {
     onLine('==> No Android SDK (set ANDROID_HOME) — skipping APK. The Windows exe is still built.');
@@ -438,27 +499,56 @@ export async function buildAndroidApk(onLine, release) {
   }
   const variant = release ? 'release' : 'debug';
 
+  await stopGradleDaemons(onLine);
   onLine('==> Android: regenerating gen/android for the current identifier');
   await rm(join(APP_DIR, 'src-tauri', 'gen', 'android'), { recursive: true, force: true });
   if (await sh(`${PNPM} exec tauri android init`, { cwd: APP_DIR, env }, onLine))
     return fail(onLine, 'tauri android init');
 
-  // `tauri android init` regenerates a VANILLA AndroidManifest.xml, stripping ~97 lines
-  // of Readest's committed manifest — most critically MANAGE_EXTERNAL_STORAGE (the "All
-  // files access" permission the app needs to bulk-import a folder of epubs) plus the
-  // file-type intent-filters (open-with). The mod never patches the manifest, so the
-  // committed HEAD version is the source of truth — restore it. Tauri's deep-link /
-  // file-association auto-gen still runs against the marked sections at build time.
-  const manifestRel = 'apps/readest-app/src-tauri/gen/android/app/src/main/AndroidManifest.xml';
-  if (await git(['checkout', 'HEAD', '--', manifestRel], { cwd: WORK_DIR, env }, onLine))
-    return fail(onLine, 'restore AndroidManifest.xml');
-  onLine('==> Android: restored Readest manifest (MANAGE_EXTERNAL_STORAGE + file intents)');
+  // `tauri android init` regenerates VANILLA versions of every file Readest commits
+  // under gen/android — the manifest (stripping MANAGE_EXTERNAL_STORAGE + file
+  // intent-filters), app/build.gradle.kts (dropping the ${sentryDsn}/${usesCleartextTraffic}
+  // manifest placeholders + FOSS flavor + signing), and the resources the manifest
+  // references (res/xml/automotive_app_desc.xml, themes, launcher drawables). Restoring
+  // ONLY the manifest leaves it pointing at placeholders + resources that no longer
+  // exist → the merge fails ("no value for <sentryDsn>") then AAPT fails ("resource
+  // xml/automotive_app_desc not found"). The committed files are a consistent whole, so
+  // restore all of them; `tauri android init` still supplies the generated scaffolding
+  // (gradlew, buildSrc, settings.gradle, base launcher icons) it wrote around them.
+  const genRel = 'apps/readest-app/src-tauri/gen/android';
+  if (await git(['checkout', 'HEAD', '--', genRel], { cwd: WORK_DIR, env }, onLine))
+    return fail(onLine, 'restore committed gen/android files');
+  onLine('==> Android: restored ALL committed gen/android files (manifest, gradle, resources)');
 
   await applyAndroidPostInitFixes(onLine, release);
 
-  // `tauri android init` writes DEFAULT launcher icons; regenerate OURS from the SVG
-  // so gen/android gets the book+cloud (legacy mipmaps + adaptive foreground; the
-  // adaptive background resolves to the white ic_launcher_background color added above).
+  // The restored committed manifest ships the OFFICIAL client's reverse-DNS OAuth
+  // scheme. When this build bakes a DIFFERENT client (the project's own default, or a
+  // builder override), the manifest's redirect scheme must match that client or Google's
+  // redirect cannot route back to the app — swap whatever `com.googleusercontent.apps.*`
+  // scheme the manifest ships for this build's derived one. (`injectClientConfig` already
+  // set the frontend env + tauri.conf schemes; this fixes the manifest the restore reset.)
+  const { clientId: effectiveClient } = await effectiveClientId();
+  if (effectiveClient && isGoogleClientId(effectiveClient)) {
+    const manifestPath = join(
+      APP_DIR, 'src-tauri', 'gen', 'android', 'app', 'src', 'main', 'AndroidManifest.xml',
+    );
+    const manifestXml = await readFile(manifestPath, 'utf8');
+    const wantScheme = deriveReverseDnsScheme(effectiveClient);
+    const haveScheme = manifestXml.match(/com\.googleusercontent\.apps\.[0-9A-Za-z-]+/)?.[0];
+    if (haveScheme && haveScheme.toLowerCase() !== wantScheme) {
+      await writeFile(manifestPath, manifestXml.split(haveScheme).join(wantScheme));
+      onLine("==> Android: repointed the manifest OAuth redirect scheme to this build's client");
+    }
+  }
+
+  // Regenerate the launcher icons from the SVG. This is REQUIRED, not just cosmetic:
+  // the restored committed `mipmap-anydpi-v26/ic_launcher.xml` references
+  // `@color/ic_launcher_background`, and `tauri icon` is what generates that color
+  // resource (plus the adaptive foreground + legacy mipmaps). Skipping it leaves the
+  // adaptive icon pointing at a missing color → AAPT "resource color/ic_launcher_background
+  // not found". The generated color is a distinct type from the committed
+  // `drawable/ic_launcher_background`, so the two coexist without a duplicate-resource clash.
   const iconSvg = join(MOD_ROOT, 'tooling', 'mod', 'app-icon.svg');
   if (existsSync(iconSvg)) {
     if (await sh(`${PNPM} exec tauri icon ${q(iconSvg)}`, { cwd: APP_DIR, env }, onLine))
@@ -487,7 +577,14 @@ export async function buildAndroidApk(onLine, release) {
 async function buildInWork(onLine, release = false) {
   onLine(`==> Build profile: ${release ? 'RELEASE (optimized, smaller)' : 'debug (faster)'}`);
   onLine('==> Init submodules');
-  if (await git(['submodule', 'update', '--init', ...SUBMODULES], {}, onLine))
+  const submodules = await buildSubmodulePaths();
+  if (!submodules.length) return fail(onLine, 'no submodules declared in .gitmodules');
+  // `--force`: a previous `tauri build` regenerates tracked files INSIDE the
+  // submodules (e.g. packages/tauri's autogenerated permission reference docs),
+  // so a plain `update --init` refuses to check out the pinned commit on a
+  // rebuild ("local changes would be overwritten"). The submodules are build
+  // inputs pinned by upstream — nothing there is ours to keep, so discard.
+  if (await git(['submodule', 'update', '--init', '--force', ...submodules], {}, onLine))
     return fail(onLine, 'submodule init');
 
   onLine('==> Install dependencies');

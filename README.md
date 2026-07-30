@@ -1,5 +1,22 @@
 # Readest GMod — Readest with your own Google Drive sync
 
+## Why this exists
+
+Google Drive sync in Readest began as a **community contribution** — the code this mod
+builds on was written by this project's author, submitted upstream, merged into official
+Readest (v0.11.13+), and credited in-tree. Readest then **put that Google Drive sync
+behind a paid plan**: on the free tier, third-party cloud sync (Google Drive / WebDAV /
+S3) is switched off by their `CLOUD_SYNC_REQUIRES_PREMIUM` gate and funnelled through a
+Readest account.
+
+**I disagree with taking a community-contributed integration and then paywalling it
+behind your own account.** So this mod flips that gate back off — you sync to **your own
+Google Drive, with no Readest account** — which is exactly what the contribution did in
+the first place.
+
+It's all built from Readest's own open-source (AGPL-3.0) code by the patcher below;
+nothing proprietary is taken, and you can rebuild it yourself to verify every byte.
+
 ## What this solves
 
 Readest's built-in sync ties you to **their** cloud, with its storage limits. This
@@ -59,6 +76,36 @@ Drive**, and that becomes your sync:
 
 Sign in with the **same Google account on every device** and they sync to each
 other. Your data lives in your Drive, so a fresh install just re-downloads it.
+
+---
+
+## How sync fires (and the gotchas)
+
+Sync is **event-driven, not continuous** — nothing runs "every N minutes." Two
+layers:
+
+- **While a book is open:** your reading position uploads ~15 s after you stop
+  turning pages, and immediately when you **close the book** or **switch away
+  from the app**. It downloads when you **open a book** or return to the app. So
+  the position you want on your other device is usually already up before you
+  even reach the shelf.
+- **On the shelf:** a sync also runs when the library changes (import, delete,
+  close a book), and when you **pull down to refresh** or tap **⋮ → sync file**.
+
+**Gotchas we hit, so you don't have to:**
+
+- **Pull-to-refresh used to pop the Readest login** instead of syncing (only for
+  Drive-only users with no Readest account). **Fixed** — dragging down now runs
+  your Drive sync.
+- **"Sync failed" in the menu → fully relaunch the app.** The sync can get
+  wedged (most often after an app update), and once wedged every retry just
+  re-shows "Sync failed." The fix is a **full relaunch**: swipe the app away from
+  recents, then reopen — a reconnect alone does **not** clear it. After
+  reopening, tap **⋮ → sync file** (or pull-to-refresh). Confirmed on both a phone
+  and a tablet.
+- **`401` errors in the logs are harmless.** Those come from the optional
+  analytics/telemetry endpoint (`us.i.posthog.com`), **not** Google Drive — they
+  have nothing to do with sync and can be ignored.
 
 ---
 

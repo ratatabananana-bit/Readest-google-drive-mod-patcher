@@ -1,6 +1,8 @@
-# Bundled default Google OAuth client id (iOS type — Bundle ID only, NO secret,
-# NO SHA-1). Committed on purpose: a client id is NOT a secret, and `drive.file`
-# is a non-sensitive scope, so this ships a zero-setup build that signs every user
-# into THEIR OWN Google Drive. A builder can override it in the patcher UI (writes
-# tooling/mod/credentials.env, gitignored) to use their own client instead.
+# Google OAuth client id baked into this build (iOS type — Bundle ID only, NO
+# secret, NO SHA-1). This is the project's OWN client (created for Readest GMod);
+# its reverse-DNS redirect scheme is injected into tauri.conf + AndroidManifest at
+# build time from THIS id, so a from-source build signs every user into THEIR OWN
+# Google Drive with no setup — and does NOT depend on Readest's OAuth client. A
+# builder can override it in the patcher UI (writes tooling/mod/credentials.env,
+# gitignored) to bake their own client instead.
 433627266031-77n0mfpr6e88vv80luhiafp9h07kh8lb.apps.googleusercontent.com
