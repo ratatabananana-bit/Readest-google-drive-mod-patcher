@@ -48,6 +48,14 @@ page opens at `http://localhost:8787`. Pick a Readest version, click
 Android tools). Tick **Release (smaller)** for optimized files. Requirements + full
 steps are below and in [`tooling/README.md`](tooling/README.md).
 
+### macOS source builds
+
+macOS builds produce `work/output/Readest GMod.app`. See
+[`tooling/MACOS.md`](tooling/MACOS.md) for prerequisites, command-line builds,
+Android builds from a Mac, signing limitations, and keychain access after updates.
+Only Apple Silicon has been tested. This adds a source-build path; it does not
+promise a published or Apple-notarized macOS release.
+
 ### 2. Download a prebuilt release
 Grab the files from the [**Releases**](../../releases) page:
 - **Windows** — `Readest-GMod.exe` (portable; SmartScreen → More info → Run anyway).

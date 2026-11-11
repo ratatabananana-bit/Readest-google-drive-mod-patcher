@@ -1,0 +1,182 @@
+diff --git a/apps/readest-app/src/__tests__/app/library/book-context-menu-cache.test.tsx b/apps/readest-app/src/__tests__/app/library/book-context-menu-cache.test.tsx
+index 04b165a3f..d37a6feb7 100644
+--- a/apps/readest-app/src/__tests__/app/library/book-context-menu-cache.test.tsx
++++ b/apps/readest-app/src/__tests__/app/library/book-context-menu-cache.test.tsx
+@@ -1,6 +1,7 @@
+ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+ 
++import { eventDispatcher } from '@/utils/event';
+ import type { Book } from '@/types/book';
+ 
+ /**
+@@ -16,10 +17,21 @@ import type { Book } from '@/types/book';
+ 
+ const popupSpy = vi.hoisted(() => vi.fn(async () => {}));
+ const closeSpy = vi.hoisted(() => vi.fn(async () => {}));
++const nativeActions = vi.hoisted(() => new Map<string, () => void | Promise<void>>());
++const itemCloseSpy = vi.hoisted(() => vi.fn(async () => {}));
++const menuItemNew = vi.hoisted(() =>
++  vi.fn(async (options: { text: string; action?: (id: string) => void | Promise<void> }) => {
++    // Explicit MenuItem resources keep their IPC action channels alive. Inline
++    // item payloads in Menu.new lose those channels in the bundled Tauri version.
++    nativeActions.set(options.text, () => options.action?.(options.text));
++    return { rid: nativeActions.size, close: itemCloseSpy };
++  }),
++);
+ const menuNew = vi.hoisted(() => vi.fn(async () => ({ popup: popupSpy, close: closeSpy })));
+ 
+ vi.mock('@tauri-apps/api/menu', () => ({
+   Menu: { new: menuNew },
++  MenuItem: { new: menuItemNew },
+ }));
+ 
+ vi.mock('@tauri-apps/api/window', () => ({
+@@ -110,6 +122,7 @@ const openContextMenu = () =>
+ describe('library context menu caching (issue #5181)', () => {
+   beforeEach(() => {
+     vi.clearAllMocks();
++    nativeActions.clear();
+   });
+ 
+   afterEach(() => {
+@@ -174,6 +187,7 @@ describe('library context menu release while a popup is on screen', () => {
+ 
+   beforeEach(() => {
+     vi.clearAllMocks();
++    nativeActions.clear();
+     popupSpy.mockImplementation(
+       () =>
+         new Promise<void>((resolve) => {
+@@ -218,3 +232,37 @@ describe('library context menu release while a popup is on screen', () => {
+     await waitFor(() => expect(closeSpy).toHaveBeenCalledTimes(1));
+   });
+ });
++
++describe('native context-menu action channels', () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++    nativeActions.clear();
++  });
++  afterEach(cleanup);
++
++  it('delivers Delete after menu construction instead of silently losing its callback', async () => {
++    const onDelete = vi.fn();
++    eventDispatcher.on('delete-books', onDelete);
++    try {
++      renderItem();
++      openContextMenu();
++      await waitFor(() => expect(popupSpy).toHaveBeenCalled());
++      await nativeActions.get('Delete')?.();
++      expect(onDelete).toHaveBeenCalledWith(
++        expect.objectContaining({ detail: { ids: ['hash-1'] } }),
++      );
++    } finally {
++      eventDispatcher.off('delete-books', onDelete);
++    }
++  });
++
++  it('releases explicit item resources together with the cached menu', async () => {
++    const { unmount } = renderItem();
++    openContextMenu();
++    await waitFor(() => expect(popupSpy).toHaveBeenCalled());
++    const count = menuItemNew.mock.calls.length;
++    expect(count).toBeGreaterThan(0);
++    unmount();
++    await waitFor(() => expect(itemCloseSpy).toHaveBeenCalledTimes(count));
++  });
++});
+diff --git a/apps/readest-app/src/__tests__/app/library/book-context-menu-linux-inapp.test.tsx b/apps/readest-app/src/__tests__/app/library/book-context-menu-linux-inapp.test.tsx
+index 761a73b16..0a9d42383 100644
+--- a/apps/readest-app/src/__tests__/app/library/book-context-menu-linux-inapp.test.tsx
++++ b/apps/readest-app/src/__tests__/app/library/book-context-menu-linux-inapp.test.tsx
+@@ -18,6 +18,7 @@ const menuNew = vi.hoisted(() => vi.fn(async () => ({ popup: popupSpy, close: cl
+ 
+ vi.mock('@tauri-apps/api/menu', () => ({
+   Menu: { new: menuNew },
++  MenuItem: { new: vi.fn(async () => ({ rid: 1, close: vi.fn(async () => {}) })) },
+ }));
+ 
+ vi.mock('@tauri-apps/api/window', () => ({
+diff --git a/apps/readest-app/src/__tests__/app/library/book-context-menu-popup-position.test.tsx b/apps/readest-app/src/__tests__/app/library/book-context-menu-popup-position.test.tsx
+index e55a4f582..47ad7ed59 100644
+--- a/apps/readest-app/src/__tests__/app/library/book-context-menu-popup-position.test.tsx
++++ b/apps/readest-app/src/__tests__/app/library/book-context-menu-popup-position.test.tsx
+@@ -20,6 +20,7 @@ const menuNew = vi.hoisted(() => vi.fn(async () => ({ popup: popupSpy, close: vi
+ 
+ vi.mock('@tauri-apps/api/menu', () => ({
+   Menu: { new: menuNew },
++  MenuItem: { new: vi.fn(async () => ({ rid: 1, close: vi.fn(async () => {}) })) },
+ }));
+ 
+ vi.mock('@tauri-apps/plugin-opener', () => ({
+diff --git a/apps/readest-app/src/app/library/components/BookshelfItem.tsx b/apps/readest-app/src/app/library/components/BookshelfItem.tsx
+index d7cb74efd..dc6e4ce1b 100644
+--- a/apps/readest-app/src/app/library/components/BookshelfItem.tsx
++++ b/apps/readest-app/src/app/library/components/BookshelfItem.tsx
+@@ -4,7 +4,7 @@ import { useEnv } from '@/context/EnvContext';
+ import { useSettingsStore } from '@/store/settingsStore';
+ import { useTranslation } from '@/hooks/useTranslation';
+ import { useLongPress } from '@/hooks/useLongPress';
+-import { Menu } from '@tauri-apps/api/menu';
++import { Menu, MenuItem } from '@tauri-apps/api/menu';
+ import { LogicalPosition } from '@tauri-apps/api/dpi';
+ import { revealItemInDir } from '@tauri-apps/plugin-opener';
+ import { eventDispatcher } from '@/utils/event';
+@@ -108,13 +108,19 @@ const trackPopup = async (popup: Promise<void>) => {
+   if (openPopup === settled) openPopup = null;
+ };
+ 
+-const releaseMenu = (menu: Promise<Menu>) => {
++type CachedContextMenu = { menu: Menu; items: MenuItem[] };
++
++const releaseMenu = (menu: Promise<CachedContextMenu>) => {
+   const close = () => {
+     if (openPopup) {
+       void openPopup.then(close);
+       return;
+     }
+-    void menu.then((m) => m.close()).catch(() => {});
++    void menu
++      .then(async ({ menu, items }) => {
++        await Promise.allSettled([menu.close(), ...items.map((item) => item.close())]);
++      })
++      .catch(() => {});
+   };
+   close();
+ };
+@@ -350,11 +356,23 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
+   // that the popup visibly lags the right-click (issue #5181). Cache the
+   // built menu so popup() fires immediately; hovering the item prewarms the
+   // cache so even the first opening is instant.
+-  const cachedMenuRef = useRef<Promise<Menu> | null>(null);
++  const cachedMenuRef = useRef<Promise<CachedContextMenu> | null>(null);
+ 
+   const ensureMenu = () => {
+     if (!cachedMenuRef.current) {
+-      const building = Menu.new({ items: buildMenuItems() });
++      const building = (async () => {
++        // Inline Menu.new item payloads lose their action channels when the
++        // bundled Tauri drops its temporary item wrappers. Keep explicit IPC
++        // resources alive until this cached menu is released.
++        const items: MenuItem[] = [];
++        try {
++          for (const options of buildMenuItems()) items.push(await MenuItem.new(options));
++          return { menu: await Menu.new({ items }), items };
++        } catch (error) {
++          await Promise.allSettled(items.map((item) => item.close()));
++          throw error;
++        }
++      })();
+       building.catch(() => {
+         // A failed build must not poison the cache with a rejected promise.
+         if (cachedMenuRef.current === building) cachedMenuRef.current = null;
+@@ -415,7 +433,7 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
+         setInAppMenuPosition(position);
+         return;
+       }
+-      const menu = await ensureMenu();
++      const { menu } = await ensureMenu();
+       // Pop up at an explicit position so keyboard invocation (ContextMenu /
+       // Shift+F10) anchors the menu to the item instead of wherever the mouse
+       // happens to sit. On macOS and Windows — the only platforms still on the

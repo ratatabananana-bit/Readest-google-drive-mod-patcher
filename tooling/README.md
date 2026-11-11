@@ -118,3 +118,26 @@ Debug-signed is fine to ship for a sideloaded, cloud-synced app (a clean reinsta
 re-pulls everything from Drive) — see [`docs/RELEASE-SIGNING.md`](../docs/RELEASE-SIGNING.md).
 Needs the Android toolchain listed under Requirements; without it the APK step is
 skipped and only the Windows exe is built.
+
+
+## macOS support
+
+See [MACOS.md](MACOS.md) for macOS and Android-on-macOS builds. The native host
+output is now a macOS `.app` or Windows portable `.exe`; optional Android builds
+remain available on either host. The Windows Gradle `cmd /c` wrapper is applied
+only on Windows. Run the zero-dependency pipeline tests with:
+
+```sh
+node --test tooling/patcher/*.test.mjs
+```
+
+The additional `mod/native-context-menu.patch` keeps native context-menu action
+resources alive on Readest v0.12.8. Both the build and compatibility check include
+this patch. If a newer Readest changes these files, review whether its upstream
+menu implementation still needs the workaround before refreshing the patch.
+
+Mod installation isolation gives app links and desktop keychain entries their own
+namespace and disables official stable/nightly updates. Source builds should be
+updated through this patcher, not replaced by an official Readest binary. This
+also means official `readest://` and `web.readest.com` links remain with Readest;
+Google's configured reverse-DNS OAuth redirect is preserved for Drive sign-in.

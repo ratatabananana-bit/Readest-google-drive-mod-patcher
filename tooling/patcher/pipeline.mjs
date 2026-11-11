@@ -9,6 +9,8 @@
 // work on Windows without bash) and streams each line to `onLine` for the live
 // browser log. Functions resolve an exit code and never reject.
 
+import { androidSdkPath, androidBuildTask, desktopBuildOptions, preserveMonochromeLayer } from './platform.mjs';
+import { isolateInstallation, isolateManifest } from './isolation.mjs';
 import { spawn, execFileSync } from 'node:child_process';
 import { writeFile, mkdir, readFile, cp, rm } from 'node:fs/promises';
 import { existsSync, readdirSync } from 'node:fs';
@@ -47,6 +49,7 @@ const READEST_URL = 'https://github.com/readest/readest.git';
 // Override for fast local testing: clone from an existing checkout instead of GitHub.
 const CLONE_SOURCE = process.env.READEST_CLONE_SOURCE || READEST_URL;
 const IS_WIN = process.platform === 'win32';
+const IS_MAC = process.platform === 'darwin';
 const LOCALES = 'apps/readest-app/public/locales/';
 
 /**
@@ -294,7 +297,7 @@ async function injectClientConfig(onLine) {
   if (!isGoogleClientId(clientId)) return fail(onLine, `not a Google client id: ${clientId}`);
 
   try {
-    await writeFile(join(APP_DIR, '.env.local'), `${CLIENT_ID_ENV_KEY}=${clientId}\n`);
+    await writeFile(join(APP_DIR, '.env.local'), `${CLIENT_ID_ENV_KEY}=${clientId}\nNEXT_PUBLIC_GMOD_BUILD=1\n`);
 
     const scheme = deriveReverseDnsScheme(clientId);
     const confPath = join(APP_DIR, 'src-tauri', 'tauri.conf.json');
@@ -323,10 +326,7 @@ async function injectClientConfig(onLine) {
 
 /** Locate the Android SDK + newest installed NDK (env first, then the default dir). */
 function resolveAndroidToolchain() {
-  const sdk =
-    process.env['ANDROID_HOME'] ||
-    process.env['ANDROID_SDK_ROOT'] ||
-    join(process.env['LOCALAPPDATA'] ?? '', 'Android', 'Sdk');
+  const sdk = androidSdkPath(process.platform, process.env, homedir());
   let ndk = process.env['NDK_HOME'] || process.env['ANDROID_NDK_HOME'] || '';
   if (!ndk) {
     const ndkRoot = join(sdk, 'ndk');
@@ -372,14 +372,9 @@ async function applyAndroidPostInitFixes(onLine, release) {
   const gen = join(APP_DIR, 'src-tauri', 'gen', 'android');
 
   const buildTask = join(gen, 'buildSrc', 'src', 'main', 'java', pkgPath, 'kotlin', 'BuildTask.kt');
-  const kt = (await readFile(buildTask, 'utf8'))
-    .split('"""pnpm"""')
-    .join(`"""${PNPM_RAW}"""`)
-    .split('executable(executable)')
-    .join('executable("cmd")')
-    .split('args(args)')
-    .join('args(listOf("/c", executable) + args)');
-  await writeFile(buildTask, kt);
+  const originalTask = await readFile(buildTask, 'utf8');
+  const kt = androidBuildTask(originalTask, PNPM_RAW, process.platform);
+  if (kt !== originalTask) await writeFile(buildTask, kt);
 
   // (No ic_launcher_background color here: the post-`init` `tauri icon` run below
   // generates its own res/values/ic_launcher_background.xml; adding one here too
@@ -501,16 +496,16 @@ async function stopGradleDaemons(onLine) {
  * matches the renamed identifier (tauri syncs it from `identifier`), applies the
  * post-init fixes, cleans the tauri mobile template's stale incremental cache, then
  * runs the build and copies the APK to `work/output/`. Best-effort: if no Android
- * SDK is present the exe is still the deliverable, so it logs and skips.
+ * SDK is present the desktop app is still the deliverable, so it logs and skips.
  */
 export async function buildAndroidApk(onLine, release) {
   if (process.env['PATCHER_SKIP_ANDROID'] === '1') {
-    onLine('==> PATCHER_SKIP_ANDROID=1 — skipping APK build (Windows exe only).');
+    onLine('==> PATCHER_SKIP_ANDROID=1 — skipping APK build (desktop app only).');
     return 0;
   }
   const env = androidEnv();
   if (!env.ANDROID_HOME || !existsSync(env.ANDROID_HOME)) {
-    onLine('==> No Android SDK (set ANDROID_HOME) — skipping APK. The Windows exe is still built.');
+    onLine('==> No Android SDK (set ANDROID_HOME) — skipping APK. The desktop app is still built.');
     return 0;
   }
   const variant = release ? 'release' : 'debug';
@@ -545,16 +540,17 @@ export async function buildAndroidApk(onLine, release) {
   // scheme the manifest ships for this build's derived one. (`injectClientConfig` already
   // set the frontend env + tauri.conf schemes; this fixes the manifest the restore reset.)
   const { clientId: effectiveClient } = await effectiveClientId();
+  const manifestPath = join(
+    APP_DIR, 'src-tauri', 'gen', 'android', 'app', 'src', 'main', 'AndroidManifest.xml',
+  );
+  const manifestXml = await readFile(manifestPath, 'utf8');
+  let repointed = isolateManifest(manifestXml);
   if (effectiveClient && isGoogleClientId(effectiveClient)) {
-    const manifestPath = join(
-      APP_DIR, 'src-tauri', 'gen', 'android', 'app', 'src', 'main', 'AndroidManifest.xml',
-    );
-    const manifestXml = await readFile(manifestPath, 'utf8');
-    const repointed = repointReverseDnsSchemes(manifestXml, deriveReverseDnsScheme(effectiveClient));
-    if (repointed !== manifestXml) {
-      await writeFile(manifestPath, repointed);
-      onLine("==> Android: repointed the manifest OAuth redirect scheme to this build's client");
-    }
+    repointed = repointReverseDnsSchemes(repointed, deriveReverseDnsScheme(effectiveClient));
+  }
+  if (repointed !== manifestXml) {
+    await writeFile(manifestPath, repointed);
+    onLine('==> Android: isolated app links and configured the OAuth redirect scheme');
   }
 
   // Regenerate the launcher icons from the SVG. This is REQUIRED, not just cosmetic:
@@ -566,9 +562,13 @@ export async function buildAndroidApk(onLine, release) {
   // `drawable/ic_launcher_background`, so the two coexist without a duplicate-resource clash.
   const iconSvg = join(MOD_ROOT, 'tooling', 'mod', 'app-icon.svg');
   if (existsSync(iconSvg)) {
+    const adaptiveIcon = join(APP_DIR, 'src-tauri', 'gen', 'android', 'app', 'src', 'main', 'res', 'mipmap-anydpi-v26', 'ic_launcher.xml');
+    const previousIcon = await readFile(adaptiveIcon, 'utf8');
     if (await sh(`${PNPM} exec tauri icon ${q(iconSvg)}`, { cwd: APP_DIR, env }, onLine))
       return fail(onLine, 'tauri icon (android launcher)');
-    onLine('==> Android: regenerated launcher icon from app-icon.svg');
+    const generatedIcon = await readFile(adaptiveIcon, 'utf8');
+    await writeFile(adaptiveIcon, preserveMonochromeLayer(generatedIcon, previousIcon));
+    onLine('==> Android: regenerated launcher icon and preserved its themed layer');
   }
 
   // tauri's :tauri-android compile writes kotlin incremental caches INTO this source
@@ -602,6 +602,14 @@ async function buildInWork(onLine, release = false) {
   if (await git(['submodule', 'update', '--init', '--force', ...submodules], {}, onLine))
     return fail(onLine, 'submodule init');
 
+  // Keep the native-menu fix across fresh overlays and Readest updates.
+  const menuPatch = join(MOD_ROOT, 'tooling', 'mod', 'native-context-menu.patch');
+  if (existsSync(menuPatch)) {
+    const applied = await captureGit(['apply', '--reverse', '--check', menuPatch]);
+    if (applied.code !== 0 && await git(['apply', menuPatch], {}, onLine))
+      return fail(onLine, 'native context-menu patch (review compatibility with this Readest version)');
+  }
+
   onLine('==> Install dependencies');
   if (await sh(`${PNPM} install`, {}, onLine)) return fail(onLine, 'pnpm install');
 
@@ -611,6 +619,7 @@ async function buildInWork(onLine, release = false) {
   for (const leaf of VENDOR_LEAVES)
     if (await sh(`${PNPM} run ${leaf}`, { cwd: APP_DIR }, onLine)) return fail(onLine, `vendor ${leaf}`);
 
+  await isolateInstallation(APP_DIR);
   if (await injectClientConfig(onLine)) return 1;
 
   if (existsSync(ICONS_SRC)) {
@@ -622,23 +631,32 @@ async function buildInWork(onLine, release = false) {
   if (await sh(`${PNPM} build`, { cwd: APP_DIR }, onLine)) return fail(onLine, 'next build');
 
   onLine('==> Build native app');
-  await writeFile(join(APP_DIR, '.patcher-tauri-override.json'), '{"build":{"beforeBuildCommand":""}}');
+  const { override, bundleArgs } = desktopBuildOptions(process.platform);
+  await writeFile(join(APP_DIR, '.patcher-tauri-override.json'), JSON.stringify(override));
   // tauri builds RELEASE by default; `--debug` is the only profile flag (there is no `--release`).
   const tauri =
-    `${PNPM} exec dotenv -e .env.tauri -- tauri build ${release ? '' : '--debug'} --no-bundle --config .patcher-tauri-override.json`;
+    `${PNPM} exec dotenv -e .env.tauri -- tauri build ${release ? '' : '--debug'} ${bundleArgs} --config .patcher-tauri-override.json`;
   if (await sh(tauri, { cwd: APP_DIR, env: cargoEnv() }, onLine)) return fail(onLine, 'tauri build');
 
-  // Copy the portable exe into work/output/ alongside the APK — both deliverables
-  // live in one place (the build leaves the exe deep under target/<profile>/).
-  const builtExe = join(WORK_DIR, 'target', release ? 'release' : 'debug', 'readest.exe');
+  // Collect the host desktop artifact next to the optional APK.
   await mkdir(ANDROID_OUTPUT_DIR, { recursive: true });
-  await cp(builtExe, join(ANDROID_OUTPUT_DIR, EXE_FILENAME));
-  onLine(`==> Built exe: ${join(ANDROID_OUTPUT_DIR, EXE_FILENAME)}`);
+  if (IS_MAC) {
+    const { productName } = JSON.parse(await readFile(join(APP_DIR, 'src-tauri', 'tauri.conf.json'), 'utf8'));
+    const bundle = join(WORK_DIR, 'target', release ? 'release' : 'debug', 'bundle', 'macos', `${productName}.app`);
+    const output = join(ANDROID_OUTPUT_DIR, `${productName}.app`);
+    await rm(output, { recursive: true, force: true });
+    await cp(bundle, output, { recursive: true });
+    onLine(`==> Built macOS app: ${output}`);
+  } else {
+    const builtExe = join(WORK_DIR, 'target', release ? 'release' : 'debug', 'readest.exe');
+    await cp(builtExe, join(ANDROID_OUTPUT_DIR, EXE_FILENAME));
+    onLine(`==> Built exe: ${join(ANDROID_OUTPUT_DIR, EXE_FILENAME)}`);
+  }
 
   const apkCode = await buildAndroidApk(onLine, release);
   if (apkCode !== 0) return apkCode;
 
-  onLine('==> Done. Built the Windows exe (and the Android APK if the SDK was present).');
+  onLine('==> Done. Built the desktop app (and the Android APK if the SDK was present).');
   return 0;
 }
 
@@ -647,7 +665,10 @@ export async function runCheck(ref, onLine) {
   if (await ensureClone(onLine)) return 1;
   if (await git(['checkout', '-f', ref], {}, onLine)) return fail(onLine, `checkout ${ref}`);
   await git(['clean', '-fd'], {}, onLine);
-  const code = await git(['apply', '--check', MOD_PATCH], {}, onLine);
+  const patches = [MOD_PATCH];
+  const menuPatch = join(MOD_ROOT, 'tooling', 'mod', 'native-context-menu.patch');
+  if (existsSync(menuPatch)) patches.push(menuPatch);
+  const code = await git(['apply', '--check', ...patches], {}, onLine);
   if (code === 0) {
     onLine(`RESULT: COMPATIBLE — the mod fits Readest ${ref}.`);
     onLine('This was only a dry run: Readest was downloaded but NOT changed yet.');
