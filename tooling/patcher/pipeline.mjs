@@ -57,16 +57,7 @@ const LOCALES = 'apps/readest-app/public/locales/';
  * failed the Rust build with "failed to load source for dependency `tao`").
  */
 const NON_BUILD_SUBMODULES = ['apps/readest-app/.claude/skills/gstack'];
-const VENDOR_LEAVES = [
-  'prepare-public-vendor',
-  'copy-pdfjs-js',
-  'copy-pdfjs-wasm',
-  'copy-pdfjs-fonts',
-  'copy-flatten-pdfjs-annotation-layer-css',
-  'copy-flatten-pdfjs-text-layer-css',
-  'copy-simplecc',
-  'copy-jieba',
-];
+const VENDOR_LEAVES = ['setup-vendors'];
 
 const q = (p) => `"${p}"`; // quote a path for the shell (handles the space in the folder name)
 
