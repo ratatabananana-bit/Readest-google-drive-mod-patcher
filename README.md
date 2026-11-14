@@ -1,5 +1,3 @@
-# This is a Fork of https://github.com/ratatabananana-bit/Readest-google-drive-mod-patcher
-
 # Readest GMod — Readest with your own Google Drive sync
 
 ## Why this exists
@@ -147,3 +145,5 @@ technical write-up: [`docs/WINDOWS-OAUTH-SOLUTION.md`](docs/WINDOWS-OAUTH-SOLUTI
 
 A derivative of Readest, licensed **AGPL-3.0** (see [`LICENSE`](LICENSE)).
 Readest © its authors — https://github.com/readest/readest.
+
+# This is a Fork of https://github.com/ratatabananana-bit/Readest-google-drive-mod-patcher
