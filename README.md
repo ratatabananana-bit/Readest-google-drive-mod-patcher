@@ -1,3 +1,5 @@
+# This is a Fork of https://github.com/ratatabananana-bit/Readest-google-drive-mod-patcher
+
 # Readest GMod — Readest with your own Google Drive sync
 
 ## Why this exists
